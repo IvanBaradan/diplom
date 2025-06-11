@@ -79,47 +79,47 @@ class RegisterFrame(ttk.Frame):
     def create_widgets(self):
         self.reg_label = ttk.Label(self, text="Регистрация", style='Title.TLabel')
         self.reg_label.pack(pady=20)
-        
-        fields = [
-            ("Логин", self.login_entry),
-            ("Пароль", self.password_entry),
-            ("ФИО", self.fullname_entry),
-            ("Телефон", self.phone_entry)
-        ]
-        
-        for text, _ in fields:
-            label = ttk.Label(self, text=text)
-            label.pack(pady=2)
-            
+
+        # Логин
+        ttk.Label(self, text="Логин").pack(pady=2)
         self.login_entry = ttk.Entry(self)
         self.login_entry.pack(pady=2, fill=tk.X, padx=20)
-        
+
+        # Пароль
+        ttk.Label(self, text="Пароль").pack(pady=2)
         self.password_entry = ttk.Entry(self, show="*")
         self.password_entry.pack(pady=2, fill=tk.X, padx=20)
-        
+
+        # ФИО
+        ttk.Label(self, text="ФИО").pack(pady=2)
         self.fullname_entry = ttk.Entry(self)
         self.fullname_entry.pack(pady=2, fill=tk.X, padx=20)
-        
+
+        # Телефон
+        ttk.Label(self, text="Телефон").pack(pady=2)
         self.phone_entry = ttk.Entry(self)
         self.phone_entry.pack(pady=2, fill=tk.X, padx=20)
-        
+
+        # Капча
         self.captcha_image = self.captcha.draw_captcha(self.captcha_text)
         self.captcha_label = ttk.Label(self, image=self.captcha_image)
         self.captcha_label.pack(pady=5)
-        
+
         self.captcha_entry = ttk.Entry(self)
         self.captcha_entry.pack(pady=5, fill=tk.X, padx=20)
-        
+
+        # Кнопки
         btn_frame = ttk.Frame(self)
         btn_frame.pack(pady=10, fill=tk.X, padx=20)
-        
-        self.register_btn = ttk.Button(btn_frame, text="Зарегистрироваться", 
-                                     command=self.register, style='Primary.TButton')
+
+        self.register_btn = ttk.Button(btn_frame, text="Зарегистрироваться",
+                                    command=self.register, style='Primary.TButton')
         self.register_btn.pack(side=tk.LEFT, expand=True)
-        
-        self.back_btn = ttk.Button(btn_frame, text="Назад", 
-                                 command=self.on_back, style='Secondary.TButton')
+
+        self.back_btn = ttk.Button(btn_frame, text="Назад",
+                                command=self.on_back, style='Secondary.TButton')
         self.back_btn.pack(side=tk.LEFT, expand=True, padx=5)
+
     
     def register(self):
         if not self.validate_fields():

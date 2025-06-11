@@ -96,21 +96,34 @@ class AdminPanel(ttk.Frame):
                 messagebox.showerror("Ошибка", f"Не удалось загрузить изображение: {e}")
     
     def add_tour(self, entries):
-        data = {
-            'name': entries['name'].get(),
-            'country': entries['country'].get(),
-            'city': entries['city'].get(),
-            'price': float(entries['price'].get()),
-            'date_start': entries['date_start'].get(),
-            'date_end': entries['date_end'].get(),
-            'seats': int(entries['seats'].get()),
-            'description': entries['description'].get("1.0", tk.END).strip(),
-            'image': self.tour_image
-        }
-        
-        add_tour(data.values())
-        messagebox.showinfo("Успех", "Тур добавлен")
-        self.load_tours()
+        try:
+            name = entries['name'].get()
+            country = entries['country'].get()
+            city = entries['city'].get()
+            price = float(entries['price'].get())
+            date_start = entries['date_start'].get()
+            date_end = entries['date_end'].get()
+            seats = int(entries['seats'].get())
+            description = entries['description'].get("1.0", tk.END).strip()
+            image = self.tour_image
+
+            # Простейшая валидация
+            if not all([name, country, city, date_start, date_end]) or price <= 0 or seats <= 0:
+                messagebox.showerror("Ошибка", "Пожалуйста, заполните все поля корректно.")
+                return
+
+            data = (country, city, name, price, date_start, date_end, description, seats, image)
+            from services.tour_service import add_tour
+            add_tour(data)
+
+            messagebox.showinfo("Успех", "Тур успешно добавлен")
+            self.load_tours()
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Ошибка", f"Не удалось добавить тур: {e}")
+
         
     def load_tours(self):
         for row in self.tours_tree.get_children():

@@ -5,7 +5,7 @@ import os
 
 
 def get_db_path():
-    return 'tour_agency.db'
+    return 'database/tour_agency.db'
 
 def get_connection():
     return sqlite3.connect(get_db_path())

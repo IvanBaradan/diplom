@@ -75,8 +75,8 @@ class UserPanel(ttk.Frame):
             
         for tour in get_all_tours():
             self.tours_tree.insert("", tk.END, values=(
-                tour.id, tour.name, tour.country, tour.city, 
-                f"{tour.price} руб.", tour.date_start, tour.date_end, tour.seats
+                tour[0], tour[3], tour[1], tour[2], 
+                f"{tour[4]} руб.", tour[5], tour[6], tour[8]
             ))
     
     def search_tours(self):
