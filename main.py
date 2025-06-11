@@ -5,9 +5,8 @@ from database import init_db
 
 def main():
     init_db()
-    root = Tk()
-    app = TourAgencyApp(root)
-    root.mainloop()
+    app = TourAgencyApp()
+    app.mainloop()
 
 
 if __name__ == '__main__':

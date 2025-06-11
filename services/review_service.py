@@ -1,10 +1,9 @@
 # services/review_service.py
 import sqlite3
-
-DB_PATH = 'tour_agency.db'
+from database.db import get_db_path
 
 def add_review(order_id, rating, comment):
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("""
             UPDATE orders SET rating = ?, comment = ?
@@ -13,7 +12,7 @@ def add_review(order_id, rating, comment):
         conn.commit()
 
 def get_reviews_by_tour(tour_id):
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("SELECT rating, comment FROM orders WHERE tour_id = ? AND rating IS NOT NULL", (tour_id,))
         return cur.fetchall()
@@ -24,3 +23,19 @@ def calculate_average_rating(tour_id):
         return None
     ratings = [int(r[0]) for r in reviews if r[0].isdigit()]
     return round(sum(ratings) / len(ratings), 2) if ratings else None
+
+
+def add_review(user_id, tour_id, rating, comment):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO reviews (user_id, tour_id, rating, comment)
+            VALUES (?, ?, ?, ?)
+        """, (user_id, tour_id, rating, comment))
+        conn.commit()
+
+def get_reviews_for_tour(tour_id):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM reviews WHERE tour_id = ?", (tour_id,))
+        return cur.fetchall()

@@ -16,18 +16,15 @@ class AdminPanel(ttk.Frame):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(expand=True, fill=tk.BOTH)
         
-        # Вкладка управления турами
         self.tours_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.tours_frame, text="Туры")
         self.setup_tours_tab()
         
-        # Вкладка управления пользователями
         self.users_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.users_frame, text="Пользователи")
         self.setup_users_tab()
     
     def setup_tours_tab(self):
-        # Таблица с турами
         columns = ("ID", "Название", "Страна", "Город", "Цена", "Дата начала", "Дата окончания", "Места")
         self.tours_tree = ttk.Treeview(self.tours_frame, columns=columns, show="headings")
         
@@ -37,15 +34,13 @@ class AdminPanel(ttk.Frame):
             
         self.tours_tree.pack(expand=True, fill=tk.BOTH, padx=5, pady=5)
         
-        # Кнопки управления
         btn_frame = ttk.Frame(self.tours_frame)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ttk.Button(btn_frame, text="Добавить тур", command=self.show_add_tour_dialog).pack(side=tk.LEFT)
         ttk.Button(btn_frame, text="Удалить тур").pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="Обновить").pack(side=tk.LEFT)
+        ttk.Button(btn_frame, text="Обновить", command=self.load_tours).pack(side=tk.LEFT)
         
-        # Загрузка данных
         self.load_tours()
     
     def show_add_tour_dialog(self):
@@ -70,12 +65,10 @@ class AdminPanel(ttk.Frame):
             entry.grid(row=i, column=1, padx=5, pady=2, sticky=tk.EW)
             entries[field] = entry
             
-        # Загрузка изображения
         self.tour_image = None
         ttk.Button(dialog, text="Выбрать изображение", command=lambda: self.load_tour_image(dialog)).grid(
             row=len(fields), columnspan=2, pady=5)
             
-        # Кнопки
         btn_frame = ttk.Frame(dialog)
         btn_frame.grid(row=len(fields)+1, columnspan=2, pady=5)
         
@@ -115,7 +108,7 @@ class AdminPanel(ttk.Frame):
             'image': self.tour_image
         }
         
-        add_tour(data)
+        add_tour(data.values())
         messagebox.showinfo("Успех", "Тур добавлен")
         self.load_tours()
         
@@ -125,12 +118,11 @@ class AdminPanel(ttk.Frame):
             
         for tour in get_all_tours():
             self.tours_tree.insert("", tk.END, values=(
-                tour.id, tour.name, tour.country, tour.city, 
-                f"{tour.price} руб.", tour.date_start, tour.date_end, tour.seats
+                tour[0], tour[3], tour[1], tour[2], 
+                f"{tour[4]} руб.", tour[5], tour[6], tour[8]
             ))
     
     def setup_users_tab(self):
-        # Таблица с пользователями
         columns = ("ID", "Логин", "ФИО", "Телефон", "Роль")
         self.users_tree = ttk.Treeview(self.users_frame, columns=columns, show="headings")
         
@@ -140,14 +132,12 @@ class AdminPanel(ttk.Frame):
             
         self.users_tree.pack(expand=True, fill=tk.BOTH, padx=5, pady=5)
         
-        # Кнопки управления
         btn_frame = ttk.Frame(self.users_frame)
         btn_frame.pack(fill=tk.X, padx=5, pady=5)
         
         ttk.Button(btn_frame, text="Удалить пользователя").pack(side=tk.LEFT)
         ttk.Button(btn_frame, text="Обновить", command=self.load_users).pack(side=tk.LEFT, padx=5)
         
-        # Загрузка данных
         self.load_users()
     
     def load_users(self):
@@ -156,5 +146,5 @@ class AdminPanel(ttk.Frame):
             
         for user in get_all_users():
             self.users_tree.insert("", tk.END, values=(
-                user.id, user.username, user.full_name, user.phone, user.role
+                user[0], user[1], user[3], user[4], user[5]
             ))

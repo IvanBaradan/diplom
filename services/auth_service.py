@@ -1,11 +1,11 @@
 # services/auth_service.py
 import sqlite3
 import bcrypt
+from database.db import get_db_path
 
-DB_PATH = 'tour_agency.db'
 
 def get_user_by_credentials(username, password):
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = cur.fetchone()
@@ -21,7 +21,7 @@ def get_user_by_credentials(username, password):
 
 def register_user(username, password, full_name, phone):
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("INSERT INTO users (username, password, full_name, phone, role) VALUES (?, ?, ?, ?, ?)",
                     (username, hashed.decode('utf-8'), full_name, phone, 'user'))
@@ -29,7 +29,7 @@ def register_user(username, password, full_name, phone):
 
 
 def is_username_taken(username):
-    with sqlite3.connect(DB_PATH) as conn:
+    with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("SELECT 1 FROM users WHERE username = ?", (username,))
         return cur.fetchone() is not None
