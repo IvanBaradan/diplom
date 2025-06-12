@@ -52,8 +52,8 @@ class AdminMenu(ttk.Frame):
         }
         
         # Маска даты
-        fields['date_start'].bind("<FocusOut>", lambda e: fields['date_start'].delete(0, tk.END) or fields['date_start'].insert(0, validators.format_date_input(fields['date_start'].get())))
-        fields['date_end'].bind("<FocusOut>", lambda e: fields['date_end'].delete(0, tk.END) or fields['date_end'].insert(0, validators.format_date_input(fields['date_end'].get())))
+        # fields['date_start'].bind("<FocusOut>", lambda e: fields['date_start'].delete(0, tk.END) or fields['date_start'].insert(0, validators.format_date_input(fields['date_start'].get())))
+        # fields['date_end'].bind("<FocusOut>", lambda e: fields['date_end'].delete(0, tk.END) or fields['date_end'].insert(0, validators.format_date_input(fields['date_end'].get())))
 
 
         for i, (key, label) in enumerate(labels.items()):
