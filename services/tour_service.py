@@ -35,3 +35,19 @@ def get_tour_by_id(tour_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM tours WHERE id = ?", (tour_id,))
         return cur.fetchone()
+    
+    
+def get_tour_by_id(tour_id):
+    """
+    Получает тур по его ID.
+    
+    Args:
+        tour_id (int): ID тура.
+    
+    Returns:
+        tuple | None: Кортеж с данными тура или None, если не найден.
+    """
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM tours WHERE id = ?", (tour_id,))
+        return cur.fetchone()

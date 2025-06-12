@@ -2,9 +2,12 @@
 
 import tkinter as tk
 import random
+
 from tkinter import ttk, messagebox
 from services import tour_service, order_service, review_service, pdf_generator
 from gui import shared
+from PIL import Image, ImageTk
+from services import review_service, tour_service
 
 
 class UserMenu(ttk.Frame):
@@ -63,15 +66,58 @@ class UserMenu(ttk.Frame):
         tree.bind("<Double-1>", on_select)
 
     def book_or_buy_popup(self, tour_id, tour_name):
+        tour = tour_service.get_tour_by_id(tour_id)
+        if not tour:
+            messagebox.showerror("Ошибка", "Информация о туре не найдена")
+            return
+
         popup = tk.Toplevel(self)
-        popup.title("Бронирование или покупка")
+        popup.title("Информация о туре")
+        popup.geometry("600x600")
 
-        ttk.Label(popup, text=f"Выбран тур: {tour_name}", font=self.fonts['bold']).pack(pady=10)
+        # Изображение тура
+        if tour[9]:  # image (BLOB)
+            try:
+                image_data = tour[9]
+                image = Image.open(io.BytesIO(image_data))
+                image.thumbnail((300, 200))
+                img = ImageTk.PhotoImage(image)
+                img_label = ttk.Label(popup, image=img)
+                img_label.image = img  # сохранить ссылку
+                img_label.pack(pady=10)
+            except Exception as e:
+                ttk.Label(popup, text="Ошибка загрузки изображения").pack()
 
+        # Название и детали
+        ttk.Label(popup, text=tour[3], font=self.fonts['subtitle']).pack()
+        ttk.Label(popup, text=f"{tour[1]}, {tour[2]}", font=self.fonts['normal']).pack()
+        ttk.Label(popup, text=f"{tour[5]} - {tour[6]} | {tour[4]} руб.", font=self.fonts['normal']).pack(pady=5)
+
+        # Описание
+        ttk.Label(popup, text="Описание:", font=self.fonts['bold']).pack(anchor='w', padx=10)
+        desc = tk.Text(popup, height=5, wrap='word')
+        desc.insert(tk.END, tour[7])
+        desc.configure(state='disabled')
+        desc.pack(fill=tk.X, padx=10)
+
+        # Средний рейтинг
+        rating = review_service.get_average_rating(tour_id)
+        ttk.Label(popup, text=f"⭐ Рейтинг: {rating if rating else 'Нет оценок'}").pack(pady=5)
+
+        # Отзывы
+        reviews = review_service.get_reviews_for_tour(tour_id)
+        if reviews:
+            ttk.Label(popup, text="Отзывы:", font=self.fonts['bold']).pack(anchor='w', padx=10)
+            for rate, comment, user in reviews:
+                ttk.Label(popup, text=f"{user}: {rate}/5 — {comment}", wraplength=500, justify='left').pack(anchor='w', padx=15)
+        else:
+            ttk.Label(popup, text="Нет отзывов", font=self.fonts['small']).pack()
+
+        # Кнопки
         ttk.Button(popup, text="Забронировать", command=lambda: self.book(tour_id, popup),
-                   style='Secondary.TButton').pack(pady=5)
+                style='Secondary.TButton').pack(pady=5)
         ttk.Button(popup, text="Купить", command=lambda: self.purchase(tour_id, popup),
-                   style='Primary.TButton').pack(pady=5)
+                style='Primary.TButton').pack(pady=5)
 
     def book(self, tour_id, popup):
         order_service.book_tour(self.user['id'], tour_id)

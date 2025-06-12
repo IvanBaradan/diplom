@@ -1,15 +1,8 @@
 # services/review_service.py
+
 import sqlite3
 from database.db import get_db_path
 
-def add_review(order_id, rating, comment):
-    with sqlite3.connect(get_db_path()) as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            UPDATE orders SET rating = ?, comment = ?
-            WHERE id = ?
-        """, (rating, comment, order_id))
-        conn.commit()
 
 def get_reviews_by_tour(tour_id):
     with sqlite3.connect(get_db_path()) as conn:
@@ -25,7 +18,7 @@ def calculate_average_rating(tour_id):
     return round(sum(ratings) / len(ratings), 2) if ratings else None
 
     
-def add_review(order_id, rating, comment):
+def add_review(user_id, order_id, rating, comment):
     """Добавить отзыв в заказ"""
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()

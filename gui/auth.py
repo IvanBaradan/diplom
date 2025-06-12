@@ -1,13 +1,10 @@
 # gui/auth.py
 
 import tkinter as tk
-import re
-
 from tkinter import ttk, messagebox
-from services import auth_service, validators
+from services import auth_service
 from gui import shared
-
-
+import re
 
 class AuthFrame(ttk.Frame):
     def __init__(self, master, on_login_success, theme_config, fonts):
@@ -105,17 +102,17 @@ class RegisterWindow(tk.Toplevel):
 
         for idx, (label, key) in enumerate(fields, start=1):
             ttk.Label(frame, text=f"{label}:", font=self.fonts['bold']).grid(row=idx, column=0, sticky='e', pady=5)
-            entry = ttk.Entry(frame, font=self.fonts['normal'], show='*' if key == 'password' else '')
-            entry.grid(row=idx, column=1, pady=5)
-            self.entries[key] = entry
 
-        # Маска телефона
-        self.phone_var = tk.StringVar()
-        phone_entry = ttk.Entry(frame, textvariable=self.phone_var, font=self.fonts['normal'])
-        phone_entry.grid(row=3, column=1)
-        self.entries['phone'] = phone_entry
-        self.phone_var.trace_add('write', self.on_phone_change)
-
+            if key == 'phone':
+                self.phone_var = tk.StringVar()
+                phone_entry = ttk.Entry(frame, textvariable=self.phone_var, font=self.fonts['normal'])
+                phone_entry.grid(row=idx, column=1, pady=5)
+                self.entries[key] = phone_entry
+                self.phone_var.trace_add('write', self.on_phone_change)
+            else:
+                entry = ttk.Entry(frame, font=self.fonts['normal'], show='*' if key == 'password' else '')
+                entry.grid(row=idx, column=1, pady=5)
+                self.entries[key] = entry
 
         ttk.Label(frame, text="Капча:", font=self.fonts['bold']).grid(row=5, column=0, sticky='e')
         self.captcha_image = shared.draw_captcha(self.captcha_text)
@@ -148,7 +145,7 @@ class RegisterWindow(tk.Toplevel):
         if len(text) >= 11:
             out += text[9:11]
         self.phone_var.set(out)
-    
+
     def register_user(self):
         username = self.entries['username'].get()
         password = self.entries['password'].get()
