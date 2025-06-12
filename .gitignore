@@ -1,6 +1,9 @@
 venv/
 
-#temp
+# чеки
+receipts/
+
+# temp
 __pycache__
 .pyc
 .env

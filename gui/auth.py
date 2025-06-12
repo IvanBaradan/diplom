@@ -1,6 +1,8 @@
 # gui/auth.py
 
 import tkinter as tk
+import re
+
 from tkinter import ttk, messagebox
 from services import auth_service, validators
 from gui import shared
@@ -108,7 +110,12 @@ class RegisterWindow(tk.Toplevel):
             self.entries[key] = entry
 
         # Маска телефона
-        self.entries['phone'].bind("<FocusOut>", lambda e: self.entries['phone'].delete(0, tk.END) or self.entries['phone'].insert(0, validators.format_phone_input(self.entries['phone'].get())))
+        self.phone_var = tk.StringVar()
+        phone_entry = ttk.Entry(frame, textvariable=self.phone_var, font=self.fonts['normal'])
+        phone_entry.grid(row=3, column=1)
+        self.entries['phone'] = phone_entry
+        self.phone_var.trace_add('write', self.on_phone_change)
+
 
         ttk.Label(frame, text="Капча:", font=self.fonts['bold']).grid(row=5, column=0, sticky='e')
         self.captcha_image = shared.draw_captcha(self.captcha_text)
@@ -122,6 +129,26 @@ class RegisterWindow(tk.Toplevel):
         ttk.Button(frame, text="Зарегистрироваться", command=self.register_user,
                    style='Primary.TButton').grid(row=7, column=0, columnspan=2, pady=15)
 
+    def on_phone_change(self, *_):
+        text = re.sub(r'\D', '', self.phone_var.get())
+        if text.startswith("8"):
+            text = "7" + text[1:]
+        if len(text) > 11:
+            text = text[:11]
+
+        out = "+7 ("
+        if len(text) >= 4:
+            out += text[1:4] + ") "
+        elif len(text) > 1:
+            out += text[1:]
+        if len(text) >= 7:
+            out += text[4:7] + "-"
+        if len(text) >= 9:
+            out += text[7:9] + "-"
+        if len(text) >= 11:
+            out += text[9:11]
+        self.phone_var.set(out)
+    
     def register_user(self):
         username = self.entries['username'].get()
         password = self.entries['password'].get()
@@ -134,12 +161,8 @@ class RegisterWindow(tk.Toplevel):
             self.refresh_captcha()
             return
 
-        if not validators.is_non_empty(username, password, full_name, phone):
+        if not all([username, password, full_name, phone]):
             messagebox.showerror("Ошибка", "Заполните все поля")
-            return
-
-        if not validators.is_valid_phone(phone):
-            messagebox.showerror("Ошибка", "Телефон должен быть в формате +7 (XXX) XXX-XX-XX")
             return
 
         if auth_service.is_username_taken(username):

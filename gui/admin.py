@@ -1,6 +1,8 @@
 # gui/admin.py
 
 import tkinter as tk
+import re
+
 from tkinter import ttk, messagebox, filedialog
 from services import tour_service, order_service, review_service, validators
 from gui import shared
@@ -52,9 +54,18 @@ class AdminMenu(ttk.Frame):
         }
         
         # Маска даты
-        # fields['date_start'].bind("<FocusOut>", lambda e: fields['date_start'].delete(0, tk.END) or fields['date_start'].insert(0, validators.format_date_input(fields['date_start'].get())))
-        # fields['date_end'].bind("<FocusOut>", lambda e: fields['date_end'].delete(0, tk.END) or fields['date_end'].insert(0, validators.format_date_input(fields['date_end'].get())))
+        self.date_start_var = tk.StringVar()
+        self.date_end_var = tk.StringVar()
 
+        fields['date_start'] = ttk.Entry(win, textvariable=self.date_start_var)
+        fields['date_end'] = ttk.Entry(win, textvariable=self.date_end_var)
+
+        fields['date_start'].grid(row=4, column=1, padx=5, pady=5)
+        fields['date_end'].grid(row=5, column=1, padx=5, pady=5)
+
+        self.date_start_var.trace_add('write', self.on_date_change)
+        self.date_end_var.trace_add('write', self.on_date_change)
+        
 
         for i, (key, label) in enumerate(labels.items()):
             ttk.Label(win, text=label + ":").grid(row=i, column=0, sticky='e', padx=5, pady=5)
@@ -67,6 +78,21 @@ class AdminMenu(ttk.Frame):
 
         ttk.Button(win, text="Сохранить", command=lambda: self.save_tour(fields, win),
                    style='Success.TButton').grid(row=len(labels) + 1, column=0, columnspan=2, pady=10)
+        
+    def on_date_change(self, *_):
+        for var in [self.date_start_var, self.date_end_var]:
+            text = re.sub(r'\D', '', var.get())
+            if len(text) > 8:
+                text = text[:8]
+            if len(text) >= 8:
+                formatted = f"{text[:4]}-{text[4:6]}-{text[6:]}"
+            elif len(text) >= 6:
+                formatted = f"{text[:4]}-{text[4:6]}"
+            elif len(text) >= 4:
+                formatted = f"{text[:4]}"
+            else:
+                formatted = text
+            var.set(formatted)
 
     def load_image(self, parent):
         file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png *.jpg *.jpeg")])
@@ -83,11 +109,6 @@ class AdminMenu(ttk.Frame):
             label.grid(column=0, columnspan=2)
 
     def save_tour(self, fields, win):
-        # Валидация дат
-        if not validators.is_valid_date(data['date_start']) or not validators.is_valid_date(data['date_end']):
-            messagebox.showerror("Ошибка", "Неверный формат даты. Используйте YYYY-MM-DD.")
-            return
-        
         try:
             data = {key: f.get() for key, f in fields.items()}
             data['price'] = float(data['price'])

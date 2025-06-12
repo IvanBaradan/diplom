@@ -36,3 +36,25 @@ def get_orders_by_user(user_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM orders WHERE user_id = ?", (user_id,))
         return cur.fetchall()
+    
+    
+def get_orders_by_user_and_status(user_id, statuses):
+    """Получить заказы пользователя с определёнными статусами"""
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        placeholders = ','.join('?' * len(statuses))
+        cur.execute(f"""
+            SELECT * FROM orders WHERE user_id = ? AND status IN ({placeholders})
+        """, (user_id, *statuses))
+        return cur.fetchall()
+
+
+def approve_refund(order_id):
+    """Одобрить возврат: удаляет заказ и возвращает место"""
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT tour_id FROM orders WHERE id=?", (order_id,))
+        tour_id = cur.fetchone()[0]
+        cur.execute("DELETE FROM orders WHERE id=?", (order_id,))
+        cur.execute("UPDATE tours SET seats = seats + 1 WHERE id=?", (tour_id,))
+        conn.commit()

@@ -1,6 +1,7 @@
 # gui/user.py
 
 import tkinter as tk
+import random
 from tkinter import ttk, messagebox
 from services import tour_service, order_service, review_service, pdf_generator
 from gui import shared

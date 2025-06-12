@@ -30,6 +30,7 @@ def update_tour_seats(tour_id, seats):
         conn.commit()
 
 def get_tour_by_id(tour_id):
+    """Получить тур по ID"""
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM tours WHERE id = ?", (tour_id,))
