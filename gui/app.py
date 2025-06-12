@@ -1,97 +1,44 @@
 # gui/app.py
+
 import tkinter as tk
 from tkinter import ttk
-from .auth import AuthFrame, RegisterFrame
-from .admin import AdminPanel
-from .user import UserPanel
-from .shared import Theme
+from gui.auth import AuthFrame
+from gui.user import UserMenu
+from gui.admin import AdminMenu
+from gui import shared
 
-class TourAgencyApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Travel Agency")
-        self.geometry("1200x800")
-        self.minsize(1000, 700)
-        
-        self.theme = Theme()
+
+class TourAgencyApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Турагентство")
+        self.root.geometry("1200x800")
+
+        self.fonts = shared.setup_fonts()
+        self.style = ttk.Style()
+        self.theme_config = shared.setup_theme(self.style, self.fonts, dark_mode=False)
+
         self.current_user = None
         self.current_frame = None
-        
-        self.setup_style()
-        self.show_auth_frame()
-    
-    def setup_style(self):
-        style = ttk.Style()
-        style.theme_use('clam')
-        
-        # Настройка стилей на основе темы
-        style.configure('.', background=self.theme.current['bg'])
-        style.configure('TFrame', background=self.theme.current['bg'])
-        style.configure('TLabel', background=self.theme.current['bg'], foreground=self.theme.current['text'])
-        style.configure('TButton', padding=8)
-        
-        style.configure('Primary.TButton', 
-                      background=self.theme.current['primary'], 
-                      foreground='white')
-        
-        style.configure('Secondary.TButton', 
-                      background=self.theme.current['secondary'], 
-                      foreground='white')
-        
-        style.configure('Title.TLabel', 
-                      font=('Segoe UI', 24, 'bold'), 
-                      foreground=self.theme.current['primary'])
-    
-    def show_auth_frame(self):
-        self.clear_frame()
-        self.current_frame = AuthFrame(
-            self, 
-            on_login_success=self.on_login_success,
-            switch_to_register=lambda: self.show_register_frame()
-        )
-        self.current_frame.pack(expand=True, fill=tk.BOTH)
-    
-    def show_register_frame(self):
-        self.clear_frame()
-        self.current_frame = RegisterFrame(
-            self,
-            on_back=self.show_auth_frame,
-            on_register_success=self.show_auth_frame
-        )
-        self.current_frame.pack(expand=True, fill=tk.BOTH)
-    
-    def on_login_success(self, user_data):
-        self.current_user = user_data
-        self.show_main_panel()
-    
-    def show_main_panel(self):
-        self.clear_frame()
-        
-        if self.current_user['role'] == 'admin':
-            self.current_frame = AdminPanel(self, self.current_user)
-        else:
-            self.current_frame = UserPanel(self, self.current_user)
-            
-        self.current_frame.pack(expand=True, fill=tk.BOTH)
-        
-        # Добавляем кнопку выхода
-        logout_btn = ttk.Button(
-            self.current_frame, 
-            text="Выйти", 
-            command=self.logout,
-            style='Danger.TButton'
-        )
-        logout_btn.pack(side=tk.BOTTOM, pady=10)
-    
-    def logout(self):
-        self.current_user = None
-        self.show_auth_frame()
-    
+
+        self.show_login()
+
     def clear_frame(self):
         if self.current_frame:
             self.current_frame.destroy()
-        self.current_frame = None
+            self.current_frame = None
 
-if __name__ == "__main__":
-    app = TourAgencyApp()
-    app.mainloop()
+    def show_login(self):
+        self.clear_frame()
+        self.current_frame = AuthFrame(self.root, self.on_login_success, self.theme_config, self.fonts)
+
+    def on_login_success(self, user):
+        self.current_user = user
+        self.show_main_menu()
+
+    def show_main_menu(self):
+        self.clear_frame()
+        if self.current_user['role'] == 'admin':
+            self.current_frame = AdminMenu(self.root, self.theme_config, self.fonts)
+        else:
+            self.current_frame = UserMenu(self.root, self.current_user, self.theme_config, self.fonts)
