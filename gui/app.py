@@ -1,97 +1,67 @@
-# gui/app.py
-import tkinter as tk
-from tkinter import ttk
-from .auth import AuthFrame, RegisterFrame
-from .admin import AdminPanel
-from .user import UserPanel
-from .shared import Theme
+from PyQt5.QtWidgets import QApplication, QMainWindow, QStackedWidget, QMessageBox
+from PyQt5.QtCore import Qt
+from gui.auth import AuthFrame
+from gui.admin import AdminPanel
+from gui.user import UserPanel
+import sys
 
-class TourAgencyApp(tk.Tk):
+class TourAgencyApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.title("Travel Agency")
-        self.geometry("1200x800")
-        self.minsize(1000, 700)
+        self.setWindowTitle("Travel Agency")
+        self.resize(1200, 800)
+        self.setMinimumSize(1000, 700)
         
-        self.theme = Theme()
         self.current_user = None
-        self.current_frame = None
+        self.setup_ui()
+    
+    def setup_ui(self):
+        self.stacked_widget = QStackedWidget()
+        self.setCentralWidget(self.stacked_widget)
         
-        self.setup_style()
+        self.auth_frame = AuthFrame(
+            on_login_success=self.on_login_success,
+            switch_to_register=self.show_register_frame
+        )
+        self.stacked_widget.addWidget(self.auth_frame)
+        
         self.show_auth_frame()
     
-    def setup_style(self):
-        style = ttk.Style()
-        style.theme_use('clam')
-        
-        # Настройка стилей на основе темы
-        style.configure('.', background=self.theme.current['bg'])
-        style.configure('TFrame', background=self.theme.current['bg'])
-        style.configure('TLabel', background=self.theme.current['bg'], foreground=self.theme.current['text'])
-        style.configure('TButton', padding=8)
-        
-        style.configure('Primary.TButton', 
-                      background=self.theme.current['primary'], 
-                      foreground='white')
-        
-        style.configure('Secondary.TButton', 
-                      background=self.theme.current['secondary'], 
-                      foreground='white')
-        
-        style.configure('Title.TLabel', 
-                      font=('Segoe UI', 24, 'bold'), 
-                      foreground=self.theme.current['primary'])
-    
     def show_auth_frame(self):
-        self.clear_frame()
-        self.current_frame = AuthFrame(
-            self, 
-            on_login_success=self.on_login_success,
-            switch_to_register=lambda: self.show_register_frame()
-        )
-        self.current_frame.pack(expand=True, fill=tk.BOTH)
+        self.stacked_widget.setCurrentWidget(self.auth_frame)
     
     def show_register_frame(self):
-        self.clear_frame()
-        self.current_frame = RegisterFrame(
-            self,
-            on_back=self.show_auth_frame,
-            on_register_success=self.show_auth_frame
-        )
-        self.current_frame.pack(expand=True, fill=tk.BOTH)
+        if not hasattr(self, 'register_frame'):
+            from gui.auth import RegisterFrame
+            self.register_frame = RegisterFrame(
+                on_back=self.show_auth_frame,
+                on_register_success=self.show_auth_frame
+            )
+            self.stacked_widget.addWidget(self.register_frame)
+        self.stacked_widget.setCurrentWidget(self.register_frame)
     
     def on_login_success(self, user_data):
         self.current_user = user_data
         self.show_main_panel()
     
     def show_main_panel(self):
-        self.clear_frame()
-        
         if self.current_user['role'] == 'admin':
-            self.current_frame = AdminPanel(self, self.current_user)
+            if not hasattr(self, 'admin_panel'):
+                self.admin_panel = AdminPanel(self.current_user, self.logout)
+                self.stacked_widget.addWidget(self.admin_panel)
+            self.stacked_widget.setCurrentWidget(self.admin_panel)
         else:
-            self.current_frame = UserPanel(self, self.current_user)
-            
-        self.current_frame.pack(expand=True, fill=tk.BOTH)
-        
-        # Добавляем кнопку выхода
-        logout_btn = ttk.Button(
-            self.current_frame, 
-            text="Выйти", 
-            command=self.logout,
-            style='Danger.TButton'
-        )
-        logout_btn.pack(side=tk.BOTTOM, pady=10)
+            if not hasattr(self, 'user_panel'):
+                self.user_panel = UserPanel(self.current_user, self.logout)
+                self.stacked_widget.addWidget(self.user_panel)
+            self.stacked_widget.setCurrentWidget(self.user_panel)
     
     def logout(self):
         self.current_user = None
         self.show_auth_frame()
-    
-    def clear_frame(self):
-        if self.current_frame:
-            self.current_frame.destroy()
-        self.current_frame = None
 
 if __name__ == "__main__":
-    app = TourAgencyApp()
-    app.mainloop()
+    app = QApplication(sys.argv)
+    window = TourAgencyApp()
+    window.show()
+    sys.exit(app.exec_())

@@ -1,3 +1,4 @@
-bcrypt
 fpdf
-pillow
+PyQt5>
+Pillow
+bcrypt    

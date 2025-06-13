@@ -1,9 +1,7 @@
-# gui/shared.py
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk, ImageDraw, ImageFont
+from PyQt5.QtGui import QPixmap, QImage, QFont, QPainter, QColor
+from PyQt5.QtCore import Qt
 import random
-import io
+import string
 
 class Theme:
     def __init__(self):
@@ -30,38 +28,53 @@ class Theme:
 class CaptchaGenerator:
     @staticmethod
     def generate_text():
-        return ''.join(random.choice('0123456789') for _ in range(4))
+        return ''.join(random.choices(string.digits, k=4))
     
     @staticmethod
     def draw_captcha(text):
         width, height = 120, 50
-        image = Image.new('RGB', (width, height), color=(255, 255, 255))
-        draw = ImageDraw.Draw(image)
+        image = QImage(width, height, QImage.Format_RGB32)
+        image.fill(QColor(255, 255, 255))
         
-        try:
-            font = ImageFont.truetype("arial.ttf", 24)
-        except:
-            font = ImageFont.load_default()
-            
+        painter = QPainter(image)
+        font = QFont("Arial", 24)
+        painter.setFont(font)
+        
         for i, char in enumerate(text):
             x = 20 + i * 25
-            y = random.randint(5, 15)
+            y = random.randint(20, 30)
             angle = random.randint(-15, 15)
             
-            char_img = Image.new('RGBA', (30, 30), (255, 255, 255, 0))
-            char_draw = ImageDraw.Draw(char_img)
-            char_draw.text((0, 0), char, font=font, 
-                          fill=(random.randint(0, 100), random.randint(0, 100), random.randint(100, 255)))
-            char_img = char_img.rotate(angle, expand=1)
-            image.paste(char_img, (x, y), char_img)
-            
+            painter.save()
+            painter.translate(x, y)
+            painter.rotate(angle)
+            painter.setPen(QColor(
+                random.randint(0, 100),
+                random.randint(0, 100),
+                random.randint(100, 255)
+            ))
+            painter.drawText(0, 0, char)
+            painter.restore()
+        
         for _ in range(100):
             x, y = random.randint(0, width), random.randint(0, height)
-            draw.point((x, y), fill=(random.randint(150, 200), random.randint(150, 200), random.randint(150, 200)))
-            
+            painter.setPen(QColor(
+                random.randint(150, 200),
+                random.randint(150, 200),
+                random.randint(150, 200)
+            ))
+            painter.drawPoint(x, y) 
+        
         for _ in range(5):
             x1, y1 = random.randint(0, width), random.randint(0, height)
             x2, y2 = random.randint(0, width), random.randint(0, height)
-            draw.line((x1, y1, x2, y2), fill=(random.randint(150, 200), random.randint(150, 200), random.randint(150, 200)), width=1)
-            
-        return ImageTk.PhotoImage(image)
+            painter.setPen(QColor(
+                random.randint(150, 200),
+                random.randint(150, 200),
+                random.randint(150, 200)
+            ))
+            painter.drawLine(x1, y1, x2, y2)
+        
+        painter.end()
+        
+        return QPixmap.fromImage(image)
