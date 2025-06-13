@@ -1,6 +1,11 @@
 venv/
 
-#temp
+# чеки
+receipts/
+
+database/tour_agency.db
+
+# temp
 __pycache__
 .pyc
 .env

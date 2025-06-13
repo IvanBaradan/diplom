@@ -1,143 +1,178 @@
 # gui/auth.py
+
 import tkinter as tk
 from tkinter import ttk, messagebox
-from .shared import Theme, CaptchaGenerator
-from services.auth_service import get_user_by_credentials, register_user, is_username_taken
+from services import auth_service
+from gui import shared
+import re
 
 class AuthFrame(ttk.Frame):
-    def __init__(self, parent, on_login_success, switch_to_register):
-        super().__init__(parent)
-        self.theme = Theme()
-        self.captcha = CaptchaGenerator()
+    def __init__(self, master, on_login_success, theme_config, fonts):
+        super().__init__(master)
+        self.master = master
         self.on_login_success = on_login_success
-        self.switch_to_register = switch_to_register
-        self.captcha_text = self.captcha.generate_text()
+        self.theme_config = theme_config
+        self.fonts = fonts
+        self.captcha_text = shared.generate_captcha_text()
         self.create_widgets()
-        
+
     def create_widgets(self):
-        self.login_label = ttk.Label(self, text="Вход в систему", style='Title.TLabel')
-        self.login_label.pack(pady=20)
-        
-        self.login_entry = ttk.Entry(self)
-        self.login_entry.pack(pady=5, fill=tk.X, padx=20)
-        self.login_entry.insert(0, "Логин")
-        
-        self.password_entry = ttk.Entry(self, show="*")
-        self.password_entry.pack(pady=5, fill=tk.X, padx=20)
-        self.password_entry.insert(0, "Пароль")
-        
-        self.captcha_image = self.captcha.draw_captcha(self.captcha_text)
-        self.captcha_label = ttk.Label(self, image=self.captcha_image)
-        self.captcha_label.pack(pady=5)
-        
-        self.captcha_entry = ttk.Entry(self)
-        self.captcha_entry.pack(pady=5, fill=tk.X, padx=20)
-        
-        btn_frame = ttk.Frame(self)
-        btn_frame.pack(pady=10, fill=tk.X, padx=20)
-        
-        self.login_btn = ttk.Button(btn_frame, text="Войти", command=self.login, style='Primary.TButton')
-        self.login_btn.pack(side=tk.LEFT, expand=True)
-        
-        self.register_btn = ttk.Button(btn_frame, text="Регистрация", 
-                                      command=self.switch_to_register, style='Secondary.TButton')
-        self.register_btn.pack(side=tk.LEFT, expand=True, padx=5)
-    
+        self.pack(pady=50, expand=True)
+
+        frame = ttk.Frame(self)
+        frame.pack()
+
+        ttk.Label(frame, text="Вход в систему", font=self.fonts['title'], foreground=self.theme_config['primary']).grid(
+            row=0, column=0, columnspan=2, pady=(0, 20))
+
+        ttk.Label(frame, text="Логин:", font=self.fonts['bold']).grid(row=1, column=0, sticky='e')
+        self.username_entry = ttk.Entry(frame, font=self.fonts['normal'])
+        self.username_entry.grid(row=1, column=1, pady=5)
+
+        ttk.Label(frame, text="Пароль:", font=self.fonts['bold']).grid(row=2, column=0, sticky='e')
+        self.password_entry = ttk.Entry(frame, show='*', font=self.fonts['normal'])
+        self.password_entry.grid(row=2, column=1, pady=5)
+
+        ttk.Label(frame, text="Капча:", font=self.fonts['bold']).grid(row=3, column=0, sticky='e')
+        self.captcha_image = shared.draw_captcha(self.captcha_text)
+        self.captcha_label = ttk.Label(frame, image=self.captcha_image)
+        self.captcha_label.grid(row=3, column=1, pady=5)
+
+        ttk.Label(frame, text="Введите капчу:", font=self.fonts['bold']).grid(row=4, column=0, sticky='e')
+        self.captcha_entry = ttk.Entry(frame, font=self.fonts['normal'])
+        self.captcha_entry.grid(row=4, column=1, pady=5)
+
+        btn_frame = ttk.Frame(frame)
+        btn_frame.grid(row=5, column=0, columnspan=2, pady=20)
+
+        ttk.Button(btn_frame, text="Войти", command=self.login, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="Регистрация", command=self.show_register_window, style='Secondary.TButton').pack(side=tk.LEFT, padx=5)
+
     def login(self):
-        username = self.login_entry.get()
+        username = self.username_entry.get()
         password = self.password_entry.get()
-        captcha = self.captcha_entry.get()
-        
-        if captcha != self.captcha_text:
+        captcha_input = self.captcha_entry.get()
+
+        if captcha_input != self.captcha_text:
             messagebox.showerror("Ошибка", "Неверная капча")
             self.refresh_captcha()
             return
-            
-        user = get_user_by_credentials(username, password)
+
+        user = auth_service.get_user_by_credentials(username, password)
         if user:
             self.on_login_success(user)
         else:
             messagebox.showerror("Ошибка", "Неверный логин или пароль")
             self.refresh_captcha()
-            
+
     def refresh_captcha(self):
-        self.captcha_text = self.captcha.generate_text()
-        self.captcha_image = self.captcha.draw_captcha(self.captcha_text)
+        self.captcha_text = shared.generate_captcha_text()
+        self.captcha_image = shared.draw_captcha(self.captcha_text)
         self.captcha_label.config(image=self.captcha_image)
         self.captcha_entry.delete(0, tk.END)
 
-class RegisterFrame(ttk.Frame):
-    def __init__(self, parent, on_back, on_register_success):
-        super().__init__(parent)
-        self.theme = Theme()
-        self.captcha = CaptchaGenerator()
-        self.on_back = on_back
-        self.on_register_success = on_register_success
-        self.captcha_text = self.captcha.generate_text()
+    def show_register_window(self):
+        RegisterWindow(self.master, self.refresh_captcha, self.theme_config, self.fonts)
+
+
+class RegisterWindow(tk.Toplevel):
+    def __init__(self, master, on_register, theme_config, fonts):
+        super().__init__(master)
+        self.title("Регистрация")
+        self.on_register = on_register
+        self.theme_config = theme_config
+        self.fonts = fonts
+        self.captcha_text = shared.generate_captcha_text()
         self.create_widgets()
-        
+
     def create_widgets(self):
-        self.reg_label = ttk.Label(self, text="Регистрация", style='Title.TLabel')
-        self.reg_label.pack(pady=20)
-        
+        frame = ttk.Frame(self)
+        frame.pack(padx=20, pady=20)
+
+        ttk.Label(frame, text="Регистрация", font=self.fonts['title'],
+                  foreground=self.theme_config['primary']).grid(row=0, column=0, columnspan=2, pady=(0, 20))
+
         fields = [
-            ("Логин", self.login_entry),
-            ("Пароль", self.password_entry),
-            ("ФИО", self.fullname_entry),
-            ("Телефон", self.phone_entry)
+            ("Логин", 'username'),
+            ("Пароль", 'password'),
+            ("ФИО", 'full_name'),
+            ("Телефон", 'phone'),
         ]
-        
-        for text, _ in fields:
-            label = ttk.Label(self, text=text)
-            label.pack(pady=2)
-            
-        self.login_entry = ttk.Entry(self)
-        self.login_entry.pack(pady=2, fill=tk.X, padx=20)
-        
-        self.password_entry = ttk.Entry(self, show="*")
-        self.password_entry.pack(pady=2, fill=tk.X, padx=20)
-        
-        self.fullname_entry = ttk.Entry(self)
-        self.fullname_entry.pack(pady=2, fill=tk.X, padx=20)
-        
-        self.phone_entry = ttk.Entry(self)
-        self.phone_entry.pack(pady=2, fill=tk.X, padx=20)
-        
-        self.captcha_image = self.captcha.draw_captcha(self.captcha_text)
-        self.captcha_label = ttk.Label(self, image=self.captcha_image)
-        self.captcha_label.pack(pady=5)
-        
-        self.captcha_entry = ttk.Entry(self)
-        self.captcha_entry.pack(pady=5, fill=tk.X, padx=20)
-        
-        btn_frame = ttk.Frame(self)
-        btn_frame.pack(pady=10, fill=tk.X, padx=20)
-        
-        self.register_btn = ttk.Button(btn_frame, text="Зарегистрироваться", 
-                                     command=self.register, style='Primary.TButton')
-        self.register_btn.pack(side=tk.LEFT, expand=True)
-        
-        self.back_btn = ttk.Button(btn_frame, text="Назад", 
-                                 command=self.on_back, style='Secondary.TButton')
-        self.back_btn.pack(side=tk.LEFT, expand=True, padx=5)
-    
-    def register(self):
-        if not self.validate_fields():
+        self.entries = {}
+
+        for idx, (label, key) in enumerate(fields, start=1):
+            ttk.Label(frame, text=f"{label}:", font=self.fonts['bold']).grid(row=idx, column=0, sticky='e', pady=5)
+
+            if key == 'phone':
+                self.phone_var = tk.StringVar()
+                phone_entry = ttk.Entry(frame, textvariable=self.phone_var, font=self.fonts['normal'])
+                phone_entry.grid(row=idx, column=1, pady=5)
+                self.entries[key] = phone_entry
+                self.phone_var.trace_add('write', self.on_phone_change)
+            else:
+                entry = ttk.Entry(frame, font=self.fonts['normal'], show='*' if key == 'password' else '')
+                entry.grid(row=idx, column=1, pady=5)
+                self.entries[key] = entry
+
+        ttk.Label(frame, text="Капча:", font=self.fonts['bold']).grid(row=5, column=0, sticky='e')
+        self.captcha_image = shared.draw_captcha(self.captcha_text)
+        self.captcha_label = ttk.Label(frame, image=self.captcha_image)
+        self.captcha_label.grid(row=5, column=1, pady=5)
+
+        ttk.Label(frame, text="Введите капчу:", font=self.fonts['bold']).grid(row=6, column=0, sticky='e')
+        self.captcha_entry = ttk.Entry(frame, font=self.fonts['normal'])
+        self.captcha_entry.grid(row=6, column=1, pady=5)
+
+        ttk.Button(frame, text="Зарегистрироваться", command=self.register_user,
+                   style='Primary.TButton').grid(row=7, column=0, columnspan=2, pady=15)
+
+    def on_phone_change(self, *_):
+        text = re.sub(r'\D', '', self.phone_var.get())
+        if text.startswith("8"):
+            text = "7" + text[1:]
+        if len(text) > 11:
+            text = text[:11]
+
+        out = "+7 ("
+        if len(text) >= 4:
+            out += text[1:4] + ") "
+        elif len(text) > 1:
+            out += text[1:]
+        if len(text) >= 7:
+            out += text[4:7] + "-"
+        if len(text) >= 9:
+            out += text[7:9] + "-"
+        if len(text) >= 11:
+            out += text[9:11]
+        self.phone_var.set(out)
+
+    def register_user(self):
+        username = self.entries['username'].get()
+        password = self.entries['password'].get()
+        full_name = self.entries['full_name'].get()
+        phone = self.entries['phone'].get()
+        captcha_input = self.captcha_entry.get()
+
+        if captcha_input != self.captcha_text:
+            messagebox.showerror("Ошибка", "Неверная капча")
+            self.refresh_captcha()
             return
-            
-        if is_username_taken(self.login_entry.get()):
-            messagebox.showerror("Ошибка", "Логин уже занят")
+
+        if not all([username, password, full_name, phone]):
+            messagebox.showerror("Ошибка", "Заполните все поля")
             return
-            
-        register_user(
-            self.login_entry.get(),
-            self.password_entry.get(),
-            self.fullname_entry.get(),
-            self.phone_entry.get()
-        )
-        messagebox.showinfo("Успех", "Регистрация завершена")
-        self.on_register_success()
-        
-    def validate_fields(self):
-        # Добавьте проверку всех полей
-        return True
+
+        if auth_service.is_username_taken(username):
+            messagebox.showerror("Ошибка", "Пользователь с таким логином уже существует")
+            return
+
+        auth_service.register_user(username, password, full_name, phone)
+        messagebox.showinfo("Успешно", "Регистрация завершена")
+        self.destroy()
+        self.on_register()
+
+    def refresh_captcha(self):
+        self.captcha_text = shared.generate_captcha_text()
+        self.captcha_image = shared.draw_captcha(self.captcha_text)
+        self.captcha_label.config(image=self.captcha_image)
+        self.captcha_entry.delete(0, tk.END)

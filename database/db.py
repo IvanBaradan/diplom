@@ -1,14 +1,17 @@
 # database/db.py
 import sqlite3
+import bcrypt
 import os
 
-DB_PATH = 'tour_agency.db'
+
+def get_db_path():
+    return 'database/tour_agency.db'
 
 def get_connection():
-    return sqlite3.connect(DB_PATH)
+    return sqlite3.connect(get_db_path())
 
 def init_db():
-    db_exists = os.path.exists(DB_PATH)
+    db_exists = os.path.exists(get_db_path())
     conn = get_connection()
     cur = conn.cursor()
 
@@ -58,10 +61,11 @@ def init_db():
     # Создание администратора по умолчанию
     cur.execute("SELECT 1 FROM users WHERE username = 'admin'")
     if not cur.fetchone():
+        hashed = bcrypt.hashpw("admin".encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
         cur.execute("""
             INSERT INTO users (username, password, full_name, phone, role)
-            VALUES ('admin', 'admin', 'Администратор', '+79999999999', 'admin')
-        """)
+            VALUES (?, ?, ?, ?, ?)
+        """, ('admin', hashed, 'Администратор', '+79999999999', 'admin'))
 
     conn.commit()
     conn.close()
