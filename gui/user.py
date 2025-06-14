@@ -32,7 +32,6 @@ class UserMenu(ttk.Frame):
             ("🔍 Поиск туров", self.show_all_tours),
             ("📌 Мои брони", self.view_my_bookings),
             ("🛒 Мои покупки", self.view_my_purchases),
-            ("↩ Запрос на возврат", self.view_my_refunds),
             ("⭐ Оставить отзыв", self.leave_review),
             ("🚪 Выйти", self.app.logout),
         ]
