@@ -18,13 +18,23 @@ def purchase_tour(user_id, tour_id):
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         purchase_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Вставляем заказ и возвращаем ID
         cur.execute("""
             INSERT INTO orders (user_id, tour_id, booking_date, status)
             VALUES (?, ?, ?, 'purchased')
         """, (user_id, tour_id, purchase_date))
+        
+        # Обновляем количество мест
         cur.execute("UPDATE tours SET seats = seats - 1 WHERE id = ?", (tour_id,))
+        
+        # Получаем ID созданного заказа
+        order_id = cur.lastrowid
         conn.commit()
+        return order_id
 
+    
+    
 def request_refund(order_id):
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()

@@ -1,0 +1,6 @@
+2025-06-15 00:48:44,678 - ERROR - Ошибка регистрации шрифтов: Can't open file "c:\Programs\Python\egor_proj\tour_agency\services\fonts\DejaVuSans.ttf"
+2025-06-15 00:48:44,678 - ERROR - Ошибка создания чека: Не удалось загрузить шрифты
+2025-06-15 00:53:55,875 - ERROR - Ошибка создания чека: 'DejaVu-Oblique'
+2025-06-15 00:57:13,514 - ERROR - Ошибка регистрации шрифтов: Can't open file "c:\Programs\Python\egor_proj\tour_agency\services\fonts\DejaVuSans.ttf"
+2025-06-15 00:57:13,514 - ERROR - Ошибка создания чека: Не удалось загрузить шрифты
+2025-06-15 00:58:09,005 - INFO - Чек создан: C:\Programs\Python\egor_proj\tour_agency\receipts\receipt_4.pdf

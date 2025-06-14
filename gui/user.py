@@ -6,7 +6,7 @@ import sys
 import os
 
 from tkinter import ttk, messagebox
-from services import tour_service, order_service, review_service, pdf_generator
+from services import tour_service, order_service, review_service, pdf_generator, paths
 from gui import shared
 from PIL import Image, ImageTk
 import io
@@ -227,18 +227,57 @@ class UserMenu(ttk.Frame):
         popup.destroy()
 
     def purchase(self, tour_id, popup):
-        order_service.purchase_tour(self.user['id'], tour_id)
+        try:
+            # Получаем данные о туре
+            tour = tour_service.get_tour_by_id(tour_id)
+            if not tour:
+                messagebox.showerror("Ошибка", "Информация о туре не найдена")
+                return
 
-        # Получаем данные для чека
-        tour = tour_service.get_tour_by_id(tour_id)
-        tour_name = tour[3]
-        price = tour[4]
-        username = self.user['username']
-        order_id = random.randint(10000, 99999)  # В идеале — получить настоящий ID заказа
+            # Создаем заказ в базе данных
+            order_id = order_service.purchase_tour(self.user['id'], tour_id)
+            if not order_id:
+                messagebox.showerror("Ошибка", "Не удалось создать заказ")
+                return
 
-        path = pdf_generator.generate_pdf_receipt(order_id, tour_name, username, price)
-        messagebox.showinfo("Успех", f"Тур куплен.\nЧек сохранён:\n{path}")
-        popup.destroy()
+            # Генерируем PDF чек
+            receipt_path = pdf_generator.generate_pdf_receipt(
+                order_id=order_id,
+                tour_name=tour[3],
+                username=self.user['username'],
+                price=tour[4]
+            )
+
+            if receipt_path:
+                # Показываем пользователю путь к чеку
+                messagebox.showinfo(
+                    "Успешно", 
+                    f"Тур успешно приобретен!\n\nЧек сохранен:\n{receipt_path}",
+                    parent=popup
+                )
+                
+                # Открываем чек автоматически (для Windows)
+                if os.name == 'nt':
+                    try:
+                        os.startfile(receipt_path)
+                    except Exception as e:
+                        logging.warning(f"Не удалось открыть чек: {e}")
+            else:
+                messagebox.showwarning(
+                    "Чек не создан", 
+                    "Тур приобретен, но не удалось создать чек",
+                    parent=popup
+                )
+
+            popup.destroy()
+
+        except Exception as e:
+            messagebox.showerror(
+                "Ошибка", 
+                f"Произошла ошибка при покупке:\n{str(e)}",
+                parent=popup
+            )
+            logging.error(f"Ошибка при покупке тура: {str(e)}", exc_info=True)
 
     def view_my_bookings(self):
         self._show_orders_by_status(["booked"], "Мои брони")
