@@ -2,6 +2,8 @@
 
 import tkinter as tk
 import random
+import sys
+import os
 
 from tkinter import ttk, messagebox
 from services import tour_service, order_service, review_service, pdf_generator
@@ -255,15 +257,135 @@ class UserMenu(ttk.Frame):
 
         win = tk.Toplevel(self)
         win.title(title)
-
-        tree = ttk.Treeview(win, columns=("ID", "Тур", "Статус", "Дата"), show='headings')
-        tree.pack(fill=tk.BOTH, expand=True)
-
-        for col in tree["columns"]:
-            tree.heading(col, text=col)
-
+        win.geometry("900x600")
+        
+        # Стилизованный заголовок
+        header_frame = ttk.Frame(win, style='Card.TFrame')
+        header_frame.pack(fill=tk.X, padx=10, pady=10)
+        ttk.Label(header_frame, text=title, font=self.fonts['subtitle'], 
+                foreground=self.theme_config['primary']).pack(pady=5)
+        
+        # Основное содержимое
+        main_frame = ttk.Frame(win)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+        
+        # Таблица с заказами
+        columns = ("ID", "Тур", "Статус", "Дата", "Цена")
+        tree = ttk.Treeview(main_frame, columns=columns, show='headings', selectmode='browse')
+        
+        # Настройка колонок
+        tree.heading("ID", text="ID", anchor=tk.W)
+        tree.heading("Тур", text="Тур", anchor=tk.W)
+        tree.heading("Статус", text="Статус", anchor=tk.W)
+        tree.heading("Дата", text="Дата", anchor=tk.W)
+        tree.heading("Цена", text="Цена", anchor=tk.W)
+        
+        tree.column("ID", width=50, minwidth=50)
+        tree.column("Тур", width=250, minwidth=150)
+        tree.column("Статус", width=150, minwidth=100)
+        tree.column("Дата", width=150, minwidth=100)
+        tree.column("Цена", width=100, minwidth=80)
+        
+        # Добавляем данные
         for order in orders:
-            tree.insert("", tk.END, values=(order[0], order[1], order[2], order[3]))
+            tour = tour_service.get_tour_by_id(order[2])  # order[2] - tour_id
+            price = tour[4] if tour else "N/A"
+            tree.insert("", tk.END, values=(
+                order[0],  # ID заказа
+                order[1],  # Название тура
+                order[4],  # Дата
+                self._get_status_display(order[3]),  # Статус
+                f"{price} ₽" if price != "N/A" else price
+            ))
+        
+        # Полоса прокрутки
+        scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(fill=tk.BOTH, expand=True)
+        
+        # Кнопки действий
+        action_frame = ttk.Frame(win)
+        action_frame.pack(fill=tk.X, padx=10, pady=10)
+        
+        if "purchased" in statuses:
+            ttk.Button(action_frame, text="Просмотреть чек", 
+                    command=lambda: self._view_receipt(tree), 
+                    style='Primary.TButton').pack(side=tk.LEFT, padx=5)
+        
+        if "booked" in statuses:
+            ttk.Button(action_frame, text="Отменить бронь", 
+                    command=lambda: self._cancel_booking(tree),
+                    style='Danger.TButton').pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(action_frame, text="Закрыть", 
+                command=win.destroy,
+                style='Secondary.TButton').pack(side=tk.RIGHT, padx=5)
+        
+        # Обработка двойного клика
+        tree.bind("<Double-1>", lambda e: self._show_order_details(tree))
+        
+    def _get_status_display(self, status):
+        status_map = {
+            'booked': '🟡 Забронирован',
+            'purchased': '🟢 Оплачен',
+            'refund_requested': '🟠 Возврат',
+            'cancelled': '🔴 Отменен'
+        }
+        return status_map.get(status, status)
+    
+    def _view_receipt(self, tree):
+        selected = tree.focus()
+        if not selected:
+            messagebox.showwarning("Ошибка", "Выберите заказ")
+            return
+        
+        order_id = tree.item(selected)['values'][0]
+        receipt_path = os.path.join("receipts", f"receipt_{order_id}.pdf")
+        
+        if os.path.exists(receipt_path):
+            try:
+                if os.name == 'nt':  # Windows
+                    os.startfile(receipt_path)
+                else:  # macOS/Linux
+                    opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
+                    subprocess.run([opener, receipt_path], check=True)
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Не удалось открыть чек: {e}")
+        else:
+            messagebox.showwarning("Чек не найден", "Приносим извенения, чек не был найден.")
+            
+    def _cancel_booking(self, tree):
+        selected = tree.focus()
+        if not selected:
+            messagebox.showwarning("Ошибка", "Выберите бронь")
+            return
+        
+        order_id = tree.item(selected)['values'][0]
+        if messagebox.askyesno("Подтверждение", "Вы уверены, что хотите отменить бронь?"):
+            order_service.request_refund(order_id)
+            messagebox.showinfo("Успех", "Бронь отменена")
+            tree.delete(selected)
+
+    def _show_order_details(self, tree):
+        selected = tree.focus()
+        if not selected:
+            return
+        
+        values = tree.item(selected)['values']
+        order_id, tour_name, status, date, price = values
+        
+        details = f"""
+        Информация о заказе:
+        
+        ID: {order_id}
+        Тур: {tour_name}
+        Статус: {status}
+        Дата: {date}
+        Цена: {price}
+        """
+        
+        messagebox.showinfo("Детали заказа", details.strip())
 
     def leave_review(self):
         win = tk.Toplevel(self)
