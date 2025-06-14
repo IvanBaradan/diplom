@@ -66,6 +66,48 @@ class UserMenu(ttk.Frame):
                 self.book_or_buy_popup(values[0], values[3])
 
         tree.bind("<Double-1>", on_select)
+    
+    def search_tours_popup(self):
+        popup = tk.Toplevel(self)
+        popup.title("Поиск туров")
+
+        ttk.Label(popup, text="Введите поисковый запрос:", font=self.fonts['bold']).pack(pady=5)
+        query_entry = ttk.Entry(popup, width=40)
+        query_entry.pack(pady=5)
+
+        def do_search():
+            query = query_entry.get().strip()
+            if not query:
+                messagebox.showwarning("Пусто", "Введите текст для поиска.")
+                return
+
+            results = tour_service.search_tours(query)
+            if not results:
+                messagebox.showinfo("Ничего не найдено", "Подходящие туры не найдены.")
+                return
+
+            result_win = tk.Toplevel(popup)
+            result_win.title(f"Результаты: {query}")
+
+            tree = ttk.Treeview(result_win, columns=("ID", "Страна", "Город", "Название", "Цена", "Мест"), show='headings')
+            tree.pack(fill=tk.BOTH, expand=True)
+
+            for col in tree["columns"]:
+                tree.heading(col, text=col)
+
+            for tour in results:
+                tree.insert("", tk.END, values=(tour[0], tour[1], tour[2], tour[3], tour[4], tour[8]))
+
+            def on_select(event):
+                selected = tree.focus()
+                if selected:
+                    values = tree.item(selected)['values']
+                    self.book_or_buy_popup(values[0], values[3])
+
+            tree.bind("<Double-1>", on_select)
+
+        ttk.Button(popup, text="Поиск", command=do_search, style='Primary.TButton').pack(pady=10)
+
 
     def book_or_buy_popup(self, tour_id, tour_name):
         tour = tour_service.get_tour_by_id(tour_id)

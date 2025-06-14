@@ -27,10 +27,16 @@ def add_tour(data):
         """, data)
         conn.commit()
 
-def update_tour_seats(tour_id, seats):
+def update_tour_seats(data):
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
-        cur.execute("UPDATE tours SET seats = ? WHERE id = ?", (seats, tour_id))
+        cur.execute("""
+            UPDATE tours SET
+                country=?, city=?, name=?, price=?, date_start=?, date_end=?, description=?, seats=?, image=?
+            WHERE id=?
+        """, (data['country'], data['city'], data['name'], data['price'],
+              data['date_start'], data['date_end'], data['description'],
+              data['seats'], data['image'], data['id']))
         conn.commit()
 
 def get_tour_by_id(tour_id):
@@ -72,3 +78,14 @@ def update_tour(data):
         """, (data['country'], data['city'], data['name'], data['price'],
               data['date_start'], data['date_end'], data['description'], data['seats'], data['id']))
         conn.commit()
+        
+def search_tours(query):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        pattern = f"%{query.lower()}%"
+        cur.execute("""
+            SELECT * FROM tours
+            WHERE LOWER(country) LIKE ? OR LOWER(city) LIKE ? OR LOWER(name) LIKE ? 
+                  OR date_start LIKE ? OR date_end LIKE ?
+        """, (pattern, pattern, pattern, pattern, pattern))
+        return cur.fetchall()

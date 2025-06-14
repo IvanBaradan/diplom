@@ -165,23 +165,41 @@ class AdminMenu(ttk.Frame):
         keys = ["country", "city", "name", "price", "date_start", "date_end", "description", "seats"]
         fields = {}
 
+        self.edited_image_data = tour_values[9] if len(tour_values) > 9 else None  # текущее изображение
+
         for i, key in enumerate(keys):
-            ttk.Label(win, text=key.capitalize()).grid(row=i, column=0, sticky="e")
+            ttk.Label(win, text=key.capitalize()).grid(row=i, column=0, sticky="e", padx=5, pady=3)
             ent = ttk.Entry(win)
-            ent.grid(row=i, column=1)
+            ent.grid(row=i, column=1, padx=5, pady=3)
             ent.insert(0, str(tour_values[i + 1]))  # пропускаем ID
             fields[key] = ent
 
-        def save_changes():
-            data = {k: f.get() for k, f in fields.items()}
-            data["price"] = float(data["price"])
-            data["seats"] = int(data["seats"])
-            data["id"] = tour_values[0]
-            tour_service.update_tour(data)
-            messagebox.showinfo("Готово", "Тур обновлён")
-            win.destroy()
+        # Кнопка загрузки изображения
+        def load_image():
+            from tkinter import filedialog
+            path = filedialog.askopenfilename(filetypes=[("Изображения", "*.jpg *.png *.jpeg *.gif")])
+            if path:
+                with open(path, 'rb') as f:
+                    self.edited_image_data = f.read()
+                ttk.Label(win, text="✅ Картинка загружена").grid(row=len(keys), column=1, sticky='w', padx=5)
 
-        ttk.Button(win, text="Сохранить", command=save_changes, style='Success.TButton').grid(row=len(keys), column=0, columnspan=2, pady=10)
+        ttk.Button(win, text="Загрузить изображение", command=load_image).grid(row=len(keys), column=0, columnspan=2, pady=10)
+
+        def save_changes():
+            try:
+                data = {k: f.get() for k, f in fields.items()}
+                data["price"] = float(data["price"])
+                data["seats"] = int(data["seats"])
+                data["id"] = tour_values[0]
+                data["image"] = self.edited_image_data  # добавляем картинку
+                tour_service.update_tour(data)
+                messagebox.showinfo("Готово", "Тур обновлён")
+                win.destroy()
+            except Exception as e:
+                messagebox.showerror("Ошибка", f"Ошибка при сохранении: {e}")
+
+        ttk.Button(win, text="Сохранить изменения", command=save_changes, style='Success.TButton').grid(row=len(keys)+1, column=0, columnspan=2, pady=10)
+
 
     def view_all_users(self):
         from database import get_connection
