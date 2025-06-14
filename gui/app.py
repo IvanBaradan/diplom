@@ -23,6 +23,10 @@ class TourAgencyApp:
 
         self.show_login()
 
+    def logout(self):
+        self.current_user = None
+        self.show_login()
+
     def clear_frame(self):
         if self.current_frame:
             self.current_frame.destroy()
@@ -39,6 +43,6 @@ class TourAgencyApp:
     def show_main_menu(self):
         self.clear_frame()
         if self.current_user['role'] == 'admin':
-            self.current_frame = AdminMenu(self.root, self.theme_config, self.fonts)
+            self.current_frame = AdminMenu(self, self.theme_config, self.fonts)
         else:
-            self.current_frame = UserMenu(self.root, self.current_user, self.theme_config, self.fonts)
+            self.current_frame = UserMenu(self, self.current_user, self.theme_config, self.fonts)

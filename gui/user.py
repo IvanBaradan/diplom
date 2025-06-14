@@ -11,9 +11,9 @@ from services import review_service, tour_service
 
 
 class UserMenu(ttk.Frame):
-    def __init__(self, master, user, theme_config, fonts):
-        super().__init__(master)
-        self.master = master
+    def __init__(self, app, user, theme_config, fonts):
+        super().__init__(app.root)
+        self.app = app
         self.user = user
         self.theme_config = theme_config
         self.fonts = fonts
@@ -33,6 +33,7 @@ class UserMenu(ttk.Frame):
             ("🛒 Мои покупки", self.view_my_purchases),
             ("↩ Запрос на возврат", self.view_my_refunds),
             ("⭐ Оставить отзыв", self.leave_review),
+            ("🚪 Выйти", self.app.logout),
         ]
 
         for i, (text, command) in enumerate(actions):

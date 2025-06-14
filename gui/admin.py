@@ -9,9 +9,9 @@ from gui import shared
 from PIL import Image, ImageTk
 
 class AdminMenu(ttk.Frame):
-    def __init__(self, master, theme_config, fonts):
-        super().__init__(master)
-        self.master = master
+    def __init__(self, app, theme_config, fonts):
+        super().__init__(app.root)
+        self.app = app
         self.theme_config = theme_config
         self.fonts = fonts
         self.tour_image_data = None
@@ -31,6 +31,7 @@ class AdminMenu(ttk.Frame):
             ("👤 Пользователи", self.view_all_users),
             ("💬 Отзывы", self.view_all_reviews),
             ("↩ Запросы на возврат", self.view_all_refunds),
+            ("🚪 Выйти", self.app.logout),
         ]
 
         for i, (text, command) in enumerate(actions):
