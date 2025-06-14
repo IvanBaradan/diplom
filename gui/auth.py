@@ -108,7 +108,7 @@ class RegisterWindow(tk.Toplevel):
                 phone_entry = ttk.Entry(frame, textvariable=self.phone_var, font=self.fonts['normal'])
                 phone_entry.grid(row=idx, column=1, pady=5)
                 self.entries[key] = phone_entry
-                self.phone_var.trace_add('write', self.on_phone_change)
+                self.phone_trace_id = self.phone_var.trace_add('write', self.on_phone_change)
             else:
                 entry = ttk.Entry(frame, font=self.fonts['normal'], show='*' if key == 'password' else '')
                 entry.grid(row=idx, column=1, pady=5)
@@ -126,25 +126,29 @@ class RegisterWindow(tk.Toplevel):
         ttk.Button(frame, text="Зарегистрироваться", command=self.register_user,
                    style='Primary.TButton').grid(row=7, column=0, columnspan=2, pady=15)
 
-    def on_phone_change(self, *_):
-        text = re.sub(r'\D', '', self.phone_var.get())
-        if text.startswith("8"):
-            text = "7" + text[1:]
-        if len(text) > 11:
-            text = text[:11]
+    def on_phone_change(self, *args):
+        raw = re.sub(r'\D', '', self.phone_var.get())
 
-        out = "+7 ("
-        if len(text) >= 4:
-            out += text[1:4] + ") "
-        elif len(text) > 1:
-            out += text[1:]
-        if len(text) >= 7:
-            out += text[4:7] + "-"
-        if len(text) >= 9:
-            out += text[7:9] + "-"
-        if len(text) >= 11:
-            out += text[9:11]
-        self.phone_var.set(out)
+        if raw.startswith("8"):
+            raw = "7" + raw[1:]
+
+        if len(raw) > 11:
+            raw = raw[:11]
+
+        formatted = "+7 "
+        if len(raw) >= 2:
+            formatted += f"({raw[1:4]}"
+        if len(raw) >= 4:
+            formatted += f") {raw[4:7]}"
+        if len(raw) >= 7:
+            formatted += f"-{raw[7:9]}"
+        if len(raw) >= 9:
+            formatted += f"-{raw[9:11]}"
+
+        # отключаем trace, чтобы избежать рекурсии
+        self.phone_var.trace_remove("write", self.phone_trace_id)
+        self.phone_var.set(formatted)
+        self.phone_trace_id = self.phone_var.trace_add("write", self.on_phone_change)
 
     def register_user(self):
         username = self.entries['username'].get()
