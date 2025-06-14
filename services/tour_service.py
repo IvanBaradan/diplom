@@ -97,11 +97,11 @@ def filter_tours(country=None, city=None, max_price=None):
         params = []
 
         if country:
-            query += " AND LOWER(country) LIKE ?"
-            params.append(f"%{country.lower()}%")
+            query += " AND LOWER(TRIM(country)) = LOWER(TRIM(?))"
+            params.append(country)
         if city:
-            query += " AND LOWER(city) LIKE ?"
-            params.append(f"%{city.lower()}%")
+            query += " AND LOWER(TRIM(city)) = LOWER(TRIM(?))"
+            params.append(city)
         if max_price:
             query += " AND price <= ?"
             params.append(max_price)

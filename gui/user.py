@@ -43,21 +43,55 @@ class UserMenu(ttk.Frame):
 
     def show_all_tours(self):
         window = tk.Toplevel(self)
-        window.title("Доступные туры")
+        window.title("Поиск туров")
+        window.geometry("1000x600")
 
-        tours = tour_service.get_all_tours()
-        if not tours:
-            messagebox.showinfo("Нет туров", "Туры не найдены.")
-            return
+        # Фильтры
+        filter_frame = ttk.Frame(window)
+        filter_frame.pack(pady=10, fill=tk.X)
 
+        ttk.Label(filter_frame, text="Страна:").grid(row=0, column=0, padx=5)
+        country_entry = ttk.Entry(filter_frame)
+        country_entry.grid(row=0, column=1, padx=5)
+
+        ttk.Label(filter_frame, text="Город:").grid(row=0, column=2, padx=5)
+        city_entry = ttk.Entry(filter_frame)
+        city_entry.grid(row=0, column=3, padx=5)
+
+        ttk.Label(filter_frame, text="Макс. цена:").grid(row=0, column=4, padx=5)
+        price_entry = ttk.Entry(filter_frame)
+        price_entry.grid(row=0, column=5, padx=5)
+
+        def load_filtered_tours():
+            country = country_entry.get().strip()
+            city = city_entry.get().strip()
+            try:
+                max_price = int(price_entry.get()) if price_entry.get().strip() else None
+            except ValueError:
+                messagebox.showerror("Ошибка", "Цена должна быть числом")
+                return
+
+            tours = tour_service.filter_tours(
+                country=country if country else None,
+                city=city if city else None,
+                max_price=max_price
+            )
+            update_tree(tours)
+
+        ttk.Button(filter_frame, text="Поиск", command=load_filtered_tours).grid(row=0, column=6, padx=10)
+
+        # Таблица туров
         tree = ttk.Treeview(window, columns=("ID", "Страна", "Город", "Название", "Цена", "Мест"), show='headings')
         tree.pack(fill=tk.BOTH, expand=True)
 
         for col in tree["columns"]:
             tree.heading(col, text=col)
 
-        for tour in tours:
-            tree.insert("", tk.END, values=(tour[0], tour[1], tour[2], tour[3], tour[4], tour[8]))
+        def update_tree(tours):
+            for i in tree.get_children():
+                tree.delete(i)
+            for tour in tours:
+                tree.insert("", tk.END, values=(tour[0], tour[1], tour[2], tour[3], tour[4], tour[8]))
 
         def on_select(event):
             selected = tree.focus()
@@ -66,6 +100,10 @@ class UserMenu(ttk.Frame):
                 self.book_or_buy_popup(values[0], values[3])
 
         tree.bind("<Double-1>", on_select)
+
+        # Загрузка всех туров по умолчанию
+        update_tree(tour_service.get_all_tours())
+
         
 
     def book_or_buy_popup(self, tour_id, tour_name):
