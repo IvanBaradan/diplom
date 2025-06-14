@@ -236,10 +236,106 @@ class AdminMenu(ttk.Frame):
         from database import get_connection
         conn = get_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, user_id, tour_id, rating, comment FROM orders WHERE rating IS NOT NULL")
+        cur.execute("""
+            SELECT o.id, u.username, t.name, o.rating, o.comment 
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            JOIN tours t ON o.tour_id = t.id
+            WHERE o.rating IS NOT NULL
+        """)
         reviews = cur.fetchall()
         conn.close()
-        self._view_table("Отзывы", reviews, ("ID", "Пользователь", "Тур", "Оценка", "Комментарий"))
+
+        win = tk.Toplevel(self)
+        win.title("Управление отзывами")
+        win.geometry("900x500")
+
+        # Стилизованный заголовок
+        header_frame = ttk.Frame(win, style='Card.TFrame')
+        header_frame.pack(fill=tk.X, padx=10, pady=10)
+        ttk.Label(header_frame, text="Все отзывы", font=self.fonts['subtitle'], 
+                foreground=self.theme_config['primary']).pack(pady=5)
+
+        # Основное содержимое
+        main_frame = ttk.Frame(win)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+
+        # Таблица с отзывами
+        columns = ("ID", "Пользователь", "Тур", "Оценка", "Комментарий")
+        tree = ttk.Treeview(main_frame, columns=columns, show='headings', selectmode='browse')
+
+        # Настройка колонок
+        tree.heading("ID", text="ID", anchor=tk.W)
+        tree.heading("Пользователь", text="Пользователь", anchor=tk.W)
+        tree.heading("Тур", text="Тур", anchor=tk.W)
+        tree.heading("Оценка", text="Оценка", anchor=tk.W)
+        tree.heading("Комментарий", text="Комментарий", anchor=tk.W)
+
+        tree.column("ID", width=50, minwidth=50)
+        tree.column("Пользователь", width=150, minwidth=100)
+        tree.column("Тур", width=200, minwidth=150)
+        tree.column("Оценка", width=80, minwidth=60)
+        tree.column("Комментарий", width=400, minwidth=200)
+
+        # Добавляем данные
+        for review in reviews:
+            rating = f"{review[3]}/5" if review[3] else "Без оценки"
+            comment = review[4] if review[4] else "Без комментария"
+            tree.insert("", tk.END, values=(
+                review[0],  # ID отзыва
+                review[1],  # Пользователь
+                review[2],  # Тур
+                rating,     # Оценка
+                comment     # Комментарий
+            ))
+
+        # Полоса прокрутки
+        scrollbar = ttk.Scrollbar(main_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(fill=tk.BOTH, expand=True)
+
+        # Функция удаления отзыва
+        def delete_review():
+            selected = tree.focus()
+            if not selected:
+                messagebox.showwarning("Ошибка", "Выберите отзыв для удаления")
+                return
+            
+            review_id = tree.item(selected)['values'][0]
+            if messagebox.askyesno("Подтверждение", "Удалить выбранный отзыв?"):
+                try:
+                    conn = get_connection()
+                    cur = conn.cursor()
+                    cur.execute("UPDATE orders SET rating=NULL, comment=NULL WHERE id=?", (review_id,))
+                    conn.commit()
+                    conn.close()
+                    tree.delete(selected)
+                    messagebox.showinfo("Успех", "Отзыв удален")
+                except Exception as e:
+                    messagebox.showerror("Ошибка", f"Не удалось удалить отзыв: {e}")
+
+        # Кнопки действий
+        action_frame = ttk.Frame(win)
+        action_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        ttk.Button(action_frame, text="Удалить отзыв", 
+                command=delete_review,
+                style='Danger.TButton').pack(side=tk.LEFT, padx=5)
+
+        ttk.Button(action_frame, text="Закрыть", 
+                command=win.destroy,
+                style='Secondary.TButton').pack(side=tk.RIGHT, padx=5)
+
+        # Обработка двойного клика
+        def show_full_review(event):
+            selected = tree.focus()
+            if selected:
+                values = tree.item(selected)['values']
+                messagebox.showinfo("Полный отзыв", 
+                                f"Пользователь: {values[1]}\nТур: {values[2]}\nОценка: {values[3]}\n\nКомментарий:\n{values[4]}")
+
+        tree.bind("<Double-1>", show_full_review)
 
     def view_all_refunds(self):
         from database import get_connection
