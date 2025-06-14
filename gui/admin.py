@@ -122,7 +122,65 @@ class AdminMenu(ttk.Frame):
             messagebox.showerror("Ошибка", f"Неверные данные: {e}")
 
     def view_all_tours(self):
-        self._view_table("Все туры", tour_service.get_all_tours(), ("ID", "Страна", "Город", "Название", "Цена", "Дата от", "Дата до", "Описание", "Мест"))
+        tours = tour_service.get_all_tours()
+        if not tours:
+            messagebox.showinfo("Нет туров", "Список туров пуст.")
+            return
+
+        win = tk.Toplevel(self)
+        win.title("Все туры")
+
+        tree = ttk.Treeview(win, columns=("ID", "Страна", "Город", "Название", "Цена", "Дата от", "Дата до", "Описание", "Мест"), show="headings")
+        tree.pack(fill=tk.BOTH, expand=True)
+
+        for col in tree["columns"]:
+            tree.heading(col, text=col)
+        for row in tours:
+            tree.insert("", tk.END, values=row)
+
+        def delete_selected():
+            selected = tree.focus()
+            if selected:
+                tour_id = tree.item(selected)['values'][0]
+                if messagebox.askyesno("Удаление", "Удалить тур?"):
+                    tour_service.delete_tour(tour_id)
+                    tree.delete(selected)
+
+        def edit_selected():
+            selected = tree.focus()
+            if selected:
+                values = tree.item(selected)['values']
+                self.edit_tour_window(values)
+
+        btn_frame = ttk.Frame(win)
+        btn_frame.pack(pady=10)
+
+        ttk.Button(btn_frame, text="Удалить тур", command=delete_selected, style='Danger.TButton').pack(side=tk.LEFT, padx=10)
+        ttk.Button(btn_frame, text="Редактировать тур", command=edit_selected, style='Secondary.TButton').pack(side=tk.LEFT, padx=10)
+
+    def edit_tour_window(self, tour_values):
+        win = tk.Toplevel(self)
+        win.title("Редактировать тур")
+        keys = ["country", "city", "name", "price", "date_start", "date_end", "description", "seats"]
+        fields = {}
+
+        for i, key in enumerate(keys):
+            ttk.Label(win, text=key.capitalize()).grid(row=i, column=0, sticky="e")
+            ent = ttk.Entry(win)
+            ent.grid(row=i, column=1)
+            ent.insert(0, str(tour_values[i + 1]))  # пропускаем ID
+            fields[key] = ent
+
+        def save_changes():
+            data = {k: f.get() for k, f in fields.items()}
+            data["price"] = float(data["price"])
+            data["seats"] = int(data["seats"])
+            data["id"] = tour_values[0]
+            tour_service.update_tour(data)
+            messagebox.showinfo("Готово", "Тур обновлён")
+            win.destroy()
+
+        ttk.Button(win, text="Сохранить", command=save_changes, style='Success.TButton').grid(row=len(keys), column=0, columnspan=2, pady=10)
 
     def view_all_users(self):
         from database import get_connection
@@ -131,7 +189,29 @@ class AdminMenu(ttk.Frame):
         cur.execute("SELECT id, username, full_name, phone, role FROM users")
         users = cur.fetchall()
         conn.close()
-        self._view_table("Пользователи", users, ("ID", "Логин", "ФИО", "Телефон", "Роль"))
+
+        win = tk.Toplevel(self)
+        win.title("Пользователи")
+
+        tree = ttk.Treeview(win, columns=("ID", "Логин", "ФИО", "Телефон", "Роль"), show='headings')
+        tree.pack(fill=tk.BOTH, expand=True)
+
+        for col in tree["columns"]:
+            tree.heading(col, text=col)
+        for row in users:
+            tree.insert("", tk.END, values=row)
+
+        def delete_user():
+            selected = tree.focus()
+            if selected:
+                user_id = tree.item(selected)['values'][0]
+                if messagebox.askyesno("Удаление", "Удалить пользователя?"):
+                    from services import auth_service
+                    auth_service.delete_user(user_id)
+                    tree.delete(selected)
+
+        ttk.Button(win, text="Удалить пользователя", command=delete_user, style='Danger.TButton').pack(pady=10)
+
 
     def view_all_reviews(self):
         from database import get_connection

@@ -51,3 +51,20 @@ def get_tour_by_id(tour_id):
         cur = conn.cursor()
         cur.execute("SELECT * FROM tours WHERE id = ?", (tour_id,))
         return cur.fetchone()
+    
+def delete_tour(tour_id):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM tours WHERE id = ?", (tour_id,))
+        conn.commit()
+
+def update_tour(data):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE tours SET
+                country=?, city=?, name=?, price=?, date_start=?, date_end=?, description=?, seats=?
+            WHERE id=?
+        """, (data['country'], data['city'], data['name'], data['price'],
+              data['date_start'], data['date_end'], data['description'], data['seats'], data['id']))
+        conn.commit()

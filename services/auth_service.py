@@ -33,3 +33,9 @@ def is_username_taken(username):
         cur = conn.cursor()
         cur.execute("SELECT 1 FROM users WHERE username = ?", (username,))
         return cur.fetchone() is not None
+
+def delete_user(user_id):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
