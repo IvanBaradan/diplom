@@ -7,6 +7,7 @@ from tkinter import ttk, messagebox
 from services import tour_service, order_service, review_service, pdf_generator
 from gui import shared
 from PIL import Image, ImageTk
+import io
 from services import review_service, tour_service
 
 
@@ -77,17 +78,19 @@ class UserMenu(ttk.Frame):
         popup.geometry("600x600")
 
         # Изображение тура
-        if tour[9]:  # image (BLOB)
+        if tour[9]:
             try:
                 image_data = tour[9]
                 image = Image.open(io.BytesIO(image_data))
                 image.thumbnail((300, 200))
                 img = ImageTk.PhotoImage(image)
                 img_label = ttk.Label(popup, image=img)
-                img_label.image = img  # сохранить ссылку
+                img_label.image = img
                 img_label.pack(pady=10)
             except Exception as e:
-                ttk.Label(popup, text="Ошибка загрузки изображения").pack()
+                ttk.Label(popup, text=f"Ошибка изображения: {e}").pack()
+        else:
+            ttk.Label(popup, text="Нет изображения для тура").pack(pady=5)
 
         # Название и детали
         ttk.Label(popup, text=tour[3], font=self.fonts['subtitle']).pack()

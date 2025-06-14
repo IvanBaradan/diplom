@@ -15,11 +15,15 @@ def get_available_tours():
         return cur.fetchall()
 
 def add_tour(data):
+    if len(data['date_start']) == 8 and data['date_start'].isdigit():
+        data['date_start'] = f"{data['date_start'][:4]}-{data['date_start'][4:6]}-{data['date_start'][6:]}"
+    if len(data['date_end']) == 8 and data['date_end'].isdigit():
+        data['date_end'] = f"{data['date_end'][:4]}-{data['date_end'][4:6]}-{data['date_end'][6:]}"   
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO tours (country, city, name, price, date_start, date_end, description, seats, image)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (:country, :city, :name, :price, :date_start, :date_end, :description, :seats, :image)
         """, data)
         conn.commit()
 

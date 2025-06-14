@@ -115,6 +115,7 @@ class AdminMenu(ttk.Frame):
             data['price'] = float(data['price'])
             data['seats'] = int(data['seats'])
             data['image'] = self.tour_image_data
+            
             tour_service.add_tour(data)
             messagebox.showinfo("Успех", "Тур добавлен.")
             win.destroy()
