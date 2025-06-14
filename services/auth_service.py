@@ -1,4 +1,5 @@
 # services/auth_service.py
+
 import sqlite3
 import bcrypt
 from database.db import get_db_path
