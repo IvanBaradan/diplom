@@ -89,3 +89,22 @@ def search_tours(query):
                   OR date_start LIKE ? OR date_end LIKE ?
         """, (pattern, pattern, pattern, pattern, pattern))
         return cur.fetchall()
+    
+def filter_tours(country=None, city=None, max_price=None):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        query = "SELECT * FROM tours WHERE 1=1"
+        params = []
+
+        if country:
+            query += " AND LOWER(country) LIKE ?"
+            params.append(f"%{country.lower()}%")
+        if city:
+            query += " AND LOWER(city) LIKE ?"
+            params.append(f"%{city.lower()}%")
+        if max_price:
+            query += " AND price <= ?"
+            params.append(max_price)
+
+        cur.execute(query, params)
+        return cur.fetchall()
