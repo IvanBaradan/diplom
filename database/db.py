@@ -2,10 +2,20 @@
 import sqlite3
 import bcrypt
 import os
+import sys
 
 
 def get_db_path():
-    return 'database/tour_agency.db'
+    if getattr(sys, 'frozen', False):
+        # Если программа запущена как exe
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Если программа запущена как скрипт
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    db_path = os.path.join(base_path, 'database', 'tour_agency.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    return db_path
 
 def get_connection():
     return sqlite3.connect(get_db_path())

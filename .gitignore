@@ -9,3 +9,7 @@ database/tour_agency.db
 __pycache__
 .pyc
 .env
+
+
+dist/
+build/
