@@ -34,6 +34,7 @@ class UserMenu(ttk.Frame):
             ("🔍 Поиск туров", self.show_all_tours),
             ("📌 Мои брони", self.view_my_bookings),
             ("🛒 Мои покупки", self.view_my_purchases),
+             ("↩ Запрос на возврат", self.view_my_refunds),
             ("⭐ Оставить отзыв", self.leave_review),
             ("🚪 Выйти", self.app.logout),
         ]
@@ -105,7 +106,8 @@ class UserMenu(ttk.Frame):
         # Загрузка всех туров по умолчанию
         update_tree(tour_service.get_all_tours())
 
-        
+    def view_my_refunds(self):
+        self._show_orders_by_status(["refund_requested", "cancelled"], "Запросы на возврат")    
 
     def book_or_buy_popup(self, tour_id, tour_name):
         tour = tour_service.get_tour_by_id(tour_id)
@@ -283,10 +285,34 @@ class UserMenu(ttk.Frame):
         self._show_orders_by_status(["booked"], "Мои брони")
 
     def view_my_purchases(self):
-        self._show_orders_by_status(["purchased"], "Мои покупки")
+        orders = order_service.get_orders_by_user_and_status(self.user['id'], ['purchased'])
+        if not orders:
+            messagebox.showinfo("Нет данных", "У вас нет покупок.")
+            return
 
-    def view_my_refunds(self):
-        self._show_orders_by_status(["refund_requested", "cancelled"], "Запросы на возврат")
+        win = tk.Toplevel(self)
+        win.title("Мои покупки")
+
+        tree = ttk.Treeview(win, columns=("ID", "Тур", "Статус", "Дата"), show='headings')
+        tree.pack(fill=tk.BOTH, expand=True)
+
+        for col in tree["columns"]:
+            tree.heading(col, text=col)
+
+        for order in orders:
+            tree.insert("", tk.END, values=(order[0], order[1], order[2], order[3]))
+
+        def request_refund():
+            selected = tree.focus()
+            if not selected:
+                messagebox.showwarning("Выберите", "Выберите покупку")
+                return
+            order_id = tree.item(selected)['values'][0]
+            order_service.request_refund(order_id)
+            messagebox.showinfo("Запрос отправлен", "Запрос на возврат отправлен")
+            win.destroy()
+
+        ttk.Button(win, text="↩ Запросить возврат", command=request_refund, style='Secondary.TButton').pack(pady=10)
 
     def _show_orders_by_status(self, statuses, title):
         orders = order_service.get_orders_by_user_and_status(self.user['id'], statuses)

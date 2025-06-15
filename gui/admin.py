@@ -28,9 +28,9 @@ class AdminMenu(ttk.Frame):
         actions = [
             ("📦 Добавить тур", self.add_tour_window),
             ("🧭 Все туры", self.view_all_tours),
+            ("↩ Возвраты", self.manage_refunds),
             ("👤 Пользователи", self.view_all_users),
             ("💬 Отзывы", self.view_all_reviews),
-            ("↩ Запросы на возврат", self.view_all_refunds),
             ("🚪 Выйти", self.app.logout),
         ]
 
@@ -378,3 +378,46 @@ class AdminMenu(ttk.Frame):
 
         for row in rows:
             tree.insert("", tk.END, values=row)
+    
+    def manage_refunds(self):
+        orders = order_service.get_orders_with_status('refund_requested')
+        if not orders:
+            messagebox.showinfo("Нет запросов", "Нет активных запросов на возврат.")
+            return
+
+        win = tk.Toplevel(self)
+        win.title("Запросы на возврат")
+
+        tree = ttk.Treeview(win, columns=("ID", "Пользователь", "Тур"), show='headings')
+        tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        for col in tree["columns"]:
+            tree.heading(col, text=col)
+
+        for row in orders:
+            tree.insert("", tk.END, values=row)
+
+        def approve():
+            selected = tree.focus()
+            if not selected:
+                return
+            order_id = tree.item(selected)['values'][0]
+            order_service.approve_refund(order_id)
+            messagebox.showinfo("Готово", "Возврат одобрен")
+            tree.delete(selected)
+
+        def reject():
+            selected = tree.focus()
+            if not selected:
+                return
+            order_id = tree.item(selected)['values'][0]
+            order_service.reject_refund(order_id)
+            messagebox.showinfo("Готово", "Возврат отклонён")
+            tree.delete(selected)
+
+        # 🔧 Оборачиваем кнопки в отдельный Frame
+        btn_frame = ttk.Frame(win)
+        btn_frame.pack(pady=10)
+
+        ttk.Button(btn_frame, text="✅ Одобрить", command=approve).pack(side=tk.LEFT, padx=10)
+        ttk.Button(btn_frame, text="❌ Отклонить", command=reject).pack(side=tk.LEFT, padx=10)
