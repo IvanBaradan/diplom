@@ -28,6 +28,7 @@ class AdminMenu(ttk.Frame):
         actions = [
             ("📦 Добавить тур", self.add_tour_window),
             ("🧭 Все туры", self.view_all_tours),
+            ("🧾 Все покупки", self.view_all_purchased_orders),
             ("↩ Возвраты", self.manage_refunds),
             ("👤 Пользователи", self.view_all_users),
             ("💬 Отзывы", self.view_all_reviews),
@@ -158,6 +159,54 @@ class AdminMenu(ttk.Frame):
 
         ttk.Button(btn_frame, text="Удалить тур", command=delete_selected, style='Danger.TButton').pack(side=tk.LEFT, padx=10)
         ttk.Button(btn_frame, text="Редактировать тур", command=edit_selected, style='Secondary.TButton').pack(side=tk.LEFT, padx=10)
+        
+    def view_all_purchased_orders(self):
+        win = tk.Toplevel(self)
+        win.title("Все покупки")
+
+        # Форма фильтров
+        filter_frame = ttk.Frame(win)
+        filter_frame.pack(pady=10)
+
+        ttk.Label(filter_frame, text="Пользователь:").grid(row=0, column=0, padx=5)
+        user_entry = ttk.Entry(filter_frame, width=15)
+        user_entry.grid(row=0, column=1, padx=5)
+
+        ttk.Label(filter_frame, text="Тур:").grid(row=0, column=2, padx=5)
+        tour_entry = ttk.Entry(filter_frame, width=15)
+        tour_entry.grid(row=0, column=3, padx=5)
+
+        ttk.Label(filter_frame, text="Дата (ГГГГ-ММ-ДД):").grid(row=0, column=4, padx=5)
+        date_entry = ttk.Entry(filter_frame, width=12)
+        date_entry.grid(row=0, column=5, padx=5)
+
+        tree = ttk.Treeview(win, columns=("ID", "Пользователь", "Тур", "Дата"), show='headings')
+        tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        for col in tree["columns"]:
+            tree.heading(col, text=col)
+
+        def load_data():
+            user_f = user_entry.get().strip()
+            tour_f = tour_entry.get().strip()
+            date_f = date_entry.get().strip()
+
+            orders = order_service.get_purchased_orders_filtered(
+                user_filter=user_f or None,
+                tour_filter=tour_f or None,
+                date_filter=date_f or None
+            )
+
+            for i in tree.get_children():
+                tree.delete(i)
+
+            for order in orders:
+                tree.insert("", tk.END, values=order)
+
+        ttk.Button(filter_frame, text="Фильтровать", command=load_data).grid(row=0, column=6, padx=10)
+
+        load_data()  # загрузка по умолчанию
+
 
     def edit_tour_window(self, tour_values):
         win = tk.Toplevel(self)

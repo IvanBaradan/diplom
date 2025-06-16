@@ -100,3 +100,28 @@ def reject_refund(order_id):
         # просто возвращаем статус обратно в "purchased"
         cur.execute("UPDATE orders SET status = 'purchased' WHERE id = ?", (order_id,))
         conn.commit()
+        
+def get_purchased_orders_filtered(user_filter=None, tour_filter=None, date_filter=None):
+    with sqlite3.connect(get_db_path()) as conn:
+        cur = conn.cursor()
+        query = """
+            SELECT o.id, u.username, t.name, o.booking_date
+            FROM orders o
+            JOIN users u ON o.user_id = u.id
+            JOIN tours t ON o.tour_id = t.id
+            WHERE o.status = 'purchased'
+        """
+        params = []
+
+        if user_filter:
+            query += " AND LOWER(u.username) LIKE ?"
+            params.append(f"%{user_filter.lower()}%")
+        if tour_filter:
+            query += " AND LOWER(t.name) LIKE ?"
+            params.append(f"%{tour_filter.lower()}%")
+        if date_filter:
+            query += " AND DATE(o.booking_date) = DATE(?)"
+            params.append(date_filter)
+
+        cur.execute(query, params)
+        return cur.fetchall()
