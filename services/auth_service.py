@@ -20,12 +20,14 @@ def get_user_by_credentials(username, password):
             }
         return None
 
-def register_user(username, password, full_name, phone):
+def register_user(username, password, full_name, phone, role='user'):
     hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     with sqlite3.connect(get_db_path()) as conn:
         cur = conn.cursor()
-        cur.execute("INSERT INTO users (username, password, full_name, phone, role) VALUES (?, ?, ?, ?, ?)",
-                    (username, hashed.decode('utf-8'), full_name, phone, 'user'))
+        cur.execute("""
+            INSERT INTO users (username, password, full_name, phone, role)
+            VALUES (?, ?, ?, ?, ?)
+        """, (username, hashed.decode('utf-8'), full_name, phone, role))
         conn.commit()
 
 

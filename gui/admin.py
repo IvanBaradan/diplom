@@ -6,6 +6,7 @@ import re
 from tkinter import ttk, messagebox, filedialog
 from services import tour_service, order_service, review_service, validators
 from gui import shared
+import io
 from PIL import Image, ImageTk
 
 class AdminMenu(ttk.Frame):
@@ -28,8 +29,10 @@ class AdminMenu(ttk.Frame):
         actions = [
             ("📦 Добавить тур", self.add_tour_window),
             ("🧭 Все туры", self.view_all_tours),
+            ("🧾 Все покупки", self.view_all_purchased_orders),
             ("↩ Возвраты", self.manage_refunds),
             ("👤 Пользователи", self.view_all_users),
+            ("➕ Добавить пользователя", self.add_user_popup),
             ("💬 Отзывы", self.view_all_reviews),
             ("🚪 Выйти", self.app.logout),
         ]
@@ -131,13 +134,23 @@ class AdminMenu(ttk.Frame):
         win = tk.Toplevel(self)
         win.title("Все туры")
 
-        tree = ttk.Treeview(win, columns=("ID", "Страна", "Город", "Название", "Цена", "Дата от", "Дата до", "Описание", "Мест"), show="headings")
+        tree = ttk.Treeview(win, columns=(
+            "ID", "Страна", "Город", "Название", "Цена",
+            "Дата от", "Дата до", "Описание", "Мест"
+        ), show="headings")
+
         tree.pack(fill=tk.BOTH, expand=True)
 
         for col in tree["columns"]:
             tree.heading(col, text=col)
+            
+            
+        image_map = {}
+
         for row in tours:
-            tree.insert("", tk.END, values=row)
+            tour_id = row[0]
+            image_map[tour_id] = row[9]
+            tree.insert("", tk.END, values=row[:9])
 
         def delete_selected():
             selected = tree.focus()
@@ -150,55 +163,124 @@ class AdminMenu(ttk.Frame):
         def edit_selected():
             selected = tree.focus()
             if selected:
-                values = tree.item(selected)['values']
+                values = list(tree.item(selected)['values'])
+                tour_id = values[0]
+                image_data = image_map.get(tour_id)
+                values.append(image_data)
                 self.edit_tour_window(values)
+
 
         btn_frame = ttk.Frame(win)
         btn_frame.pack(pady=10)
 
         ttk.Button(btn_frame, text="Удалить тур", command=delete_selected, style='Danger.TButton').pack(side=tk.LEFT, padx=10)
         ttk.Button(btn_frame, text="Редактировать тур", command=edit_selected, style='Secondary.TButton').pack(side=tk.LEFT, padx=10)
+        
+    def view_all_purchased_orders(self):
+        win = tk.Toplevel(self)
+        win.title("Все покупки")
+
+        # Форма фильтров
+        filter_frame = ttk.Frame(win)
+        filter_frame.pack(pady=10)
+
+        ttk.Label(filter_frame, text="Пользователь:").grid(row=0, column=0, padx=5)
+        user_entry = ttk.Entry(filter_frame, width=15)
+        user_entry.grid(row=0, column=1, padx=5)
+
+        ttk.Label(filter_frame, text="Тур:").grid(row=0, column=2, padx=5)
+        tour_entry = ttk.Entry(filter_frame, width=15)
+        tour_entry.grid(row=0, column=3, padx=5)
+
+        ttk.Label(filter_frame, text="Дата (ГГГГ-ММ-ДД):").grid(row=0, column=4, padx=5)
+        date_entry = ttk.Entry(filter_frame, width=12)
+        date_entry.grid(row=0, column=5, padx=5)
+
+        tree = ttk.Treeview(win, columns=("ID", "Пользователь", "Тур", "Дата"), show='headings')
+        tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        for col in tree["columns"]:
+            tree.heading(col, text=col)
+
+        def load_data():
+            user_f = user_entry.get().strip()
+            tour_f = tour_entry.get().strip()
+            date_f = date_entry.get().strip()
+
+            orders = order_service.get_purchased_orders_filtered(
+                user_filter=user_f or None,
+                tour_filter=tour_f or None,
+                date_filter=date_f or None
+            )
+
+            for i in tree.get_children():
+                tree.delete(i)
+
+            for order in orders:
+                tree.insert("", tk.END, values=order)
+
+        ttk.Button(filter_frame, text="Фильтровать", command=load_data).grid(row=0, column=6, padx=10)
+
+        load_data()  # загрузка по умолчанию
+
 
     def edit_tour_window(self, tour_values):
+        import io
+        from PIL import Image, ImageTk
+        from tkinter import filedialog
+
         win = tk.Toplevel(self)
         win.title("Редактировать тур")
+
         keys = ["country", "city", "name", "price", "date_start", "date_end", "description", "seats"]
         fields = {}
-
-        self.edited_image_data = tour_values[9] if len(tour_values) > 9 else None  # текущее изображение
+        self.edited_image_data = tour_values[9] if len(tour_values) > 9 else None
 
         for i, key in enumerate(keys):
             ttk.Label(win, text=key.capitalize()).grid(row=i, column=0, sticky="e", padx=5, pady=3)
             ent = ttk.Entry(win)
             ent.grid(row=i, column=1, padx=5, pady=3)
-            ent.insert(0, str(tour_values[i + 1]))  # пропускаем ID
+            ent.insert(0, str(tour_values[i + 1]))  # ID — это [0]
             fields[key] = ent
+
+        # Показываем текущее изображение (если есть)
+        if self.edited_image_data and isinstance(self.edited_image_data, bytes):
+            try:
+                image = Image.open(io.BytesIO(self.edited_image_data))
+                image.thumbnail((250, 150))
+                img = ImageTk.PhotoImage(image)
+                img_label = ttk.Label(win, image=img)
+                img_label.image = img
+                img_label.grid(row=len(keys), column=0, columnspan=2, pady=10)
+            except Exception as e:
+                ttk.Label(win, text=f"Ошибка изображения: {e}").grid(row=len(keys), column=0, columnspan=2)
 
         # Кнопка загрузки изображения
         def load_image():
-            from tkinter import filedialog
             path = filedialog.askopenfilename(filetypes=[("Изображения", "*.jpg *.png *.jpeg *.gif")])
             if path:
                 with open(path, 'rb') as f:
                     self.edited_image_data = f.read()
-                ttk.Label(win, text="✅ Картинка загружена").grid(row=len(keys), column=1, sticky='w', padx=5)
+                ttk.Label(win, text="✅ Картинка загружена").grid(row=len(keys) + 1, column=1, sticky='w', padx=5)
 
-        ttk.Button(win, text="Загрузить изображение", command=load_image).grid(row=len(keys), column=0, columnspan=2, pady=10)
+        ttk.Button(win, text="Загрузить изображение", command=load_image).grid(row=len(keys) + 1, column=0, columnspan=2, pady=10)
 
+        # Кнопка сохранить
         def save_changes():
             try:
                 data = {k: f.get() for k, f in fields.items()}
                 data["price"] = float(data["price"])
                 data["seats"] = int(data["seats"])
                 data["id"] = tour_values[0]
-                data["image"] = self.edited_image_data  # добавляем картинку
+                data["image"] = self.edited_image_data
+                from services import tour_service
                 tour_service.update_tour(data)
                 messagebox.showinfo("Готово", "Тур обновлён")
                 win.destroy()
             except Exception as e:
                 messagebox.showerror("Ошибка", f"Ошибка при сохранении: {e}")
 
-        ttk.Button(win, text="Сохранить изменения", command=save_changes, style='Success.TButton').grid(row=len(keys)+1, column=0, columnspan=2, pady=10)
+        ttk.Button(win, text="Сохранить изменения", command=save_changes, style='Success.TButton').grid(row=len(keys) + 2, column=0, columnspan=2, pady=10)
 
 
     def view_all_users(self):
@@ -421,3 +503,39 @@ class AdminMenu(ttk.Frame):
 
         ttk.Button(btn_frame, text="✅ Одобрить", command=approve).pack(side=tk.LEFT, padx=10)
         ttk.Button(btn_frame, text="❌ Отклонить", command=reject).pack(side=tk.LEFT, padx=10)
+        
+    def add_user_popup(self):
+        win = tk.Toplevel(self)
+        win.title("Добавить пользователя")
+
+        labels = ["Логин", "Пароль", "ФИО", "Телефон"]
+        entries = []
+
+        for i, label in enumerate(labels):
+            ttk.Label(win, text=label).grid(row=i, column=0, padx=5, pady=5)
+            entry = ttk.Entry(win)
+            entry.grid(row=i, column=1, padx=5, pady=5)
+            entries.append(entry)
+
+        is_admin_var = tk.BooleanVar()
+        ttk.Checkbutton(win, text="Сделать администратором", variable=is_admin_var).grid(row=4, column=0, columnspan=2)
+
+        def submit():
+            username, password, full_name, phone = [e.get().strip() for e in entries]
+            role = 'admin' if is_admin_var.get() else 'user'
+
+            if not all([username, password, full_name, phone]):
+                messagebox.showerror("Ошибка", "Все поля обязательны.")
+                return
+
+            from services import auth_service
+            if auth_service.is_username_taken(username):
+                messagebox.showerror("Ошибка", "Пользователь с таким логином уже существует.")
+                return
+
+            auth_service.register_user(username, password, full_name, phone, role)
+            messagebox.showinfo("Успех", f"Пользователь создан как {'администратор' if role == 'admin' else 'пользователь'}.")
+            win.destroy()
+
+        ttk.Button(win, text="Создать", command=submit, style='Primary.TButton').grid(row=5, column=0, columnspan=2, pady=10)
+

@@ -36,12 +36,30 @@ class UserMenu(ttk.Frame):
             ("🛒 Мои покупки", self.view_my_purchases),
              ("↩ Запрос на возврат", self.view_my_refunds),
             ("⭐ Оставить отзыв", self.leave_review),
+            ("ℹ О нас", self.show_about),
             ("🚪 Выйти", self.app.logout),
         ]
 
         for i, (text, command) in enumerate(actions):
             btn = ttk.Button(btn_frame, text=text, command=command, style='Primary.TButton')
             btn.grid(row=i, column=0, pady=5, ipadx=30, sticky='ew')
+            
+    def show_about(self):
+        win = tk.Toplevel(self)
+        win.title("О нас")
+        text = (
+            "🧭 ТурАгентство \"Путешествуй легко\"\n\n"
+            "📍 Адрес: г. Казань, ул. Свободы, 12\n"
+            "📞 Телефон: +7 (843) 123-45-67\n"
+            "📧 Email: support@travelpro.ru\n\n"
+            "⏰ Время работы:\n"
+            "Пн–Пт: 9:00–18:00\n"
+            "Сб: 10:00–14:00\n"
+            "Вс: выходной\n\n"
+            "Спасибо, что выбираете нас!"
+        )
+        ttk.Label(win, text=text, justify="left", padding=10).pack()
+
 
     def show_all_tours(self):
         window = tk.Toplevel(self)
