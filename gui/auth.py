@@ -4,9 +4,11 @@ import tkinter as tk
 from tkinter import ttk, messagebox, Canvas
 from services import auth_service
 from gui import shared
+from gui.shared import resource_path
 import re
 from PIL import Image, ImageTk
 import os
+import sys
 
 class AuthFrame(ttk.Frame):
     def __init__(self, master, on_login_success, theme_config, fonts):
@@ -20,8 +22,17 @@ class AuthFrame(ttk.Frame):
         self.pack(fill=tk.BOTH, expand=True)
 
         # === 1. Загрузка фонового изображения ===
-        bg_path = os.path.join("assets", "bg.jpg")
-        self.original_image = Image.open(bg_path)
+        bg_path = resource_path("assets/bg.png")
+
+        try:
+            self.original_image = Image.open(bg_path)
+        except FileNotFoundError:
+            messagebox.showerror("Ошибка", f"Файл фонового изображения не найден:\n{bg_path}")
+            # Создаем запасной белый фон
+            from PIL import ImageDraw
+            self.original_image = Image.new("RGB", (1280, 720), "#f0f0f0")
+            draw = ImageDraw.Draw(self.original_image)
+            draw.text((30, 30), "Фон не найден", fill="gray")
 
         # === 2. Canvas + фон ===
         self.canvas = Canvas(self, highlightthickness=0)
@@ -43,17 +54,6 @@ class AuthFrame(ttk.Frame):
 
         # === 5. Отрисовка виджетов ===
         self.create_widgets()
-
-    def resize_background(self, event):
-        # Масштабируем изображение под текущий размер окна
-        resized = self.original_image.resize((event.width, event.height), Image.Resampling.LANCZOS)
-        self.bg_image = ImageTk.PhotoImage(resized)
-
-        if self.bg_image_id:
-            self.canvas.itemconfig(self.bg_image_id, image=self.bg_image)
-        else:
-            self.bg_image_id = self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
-
 
     def create_widgets(self):
         # Главный контейнер
@@ -86,6 +86,7 @@ class AuthFrame(ttk.Frame):
         ttk.Button(btn_frame, text="Войти", command=self.login, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Регистрация", command=self.show_register_window, style='Secondary.TButton').pack(side=tk.LEFT, padx=5)
 
+
     def resize_background(self, event):
         resized = self.original_image.resize((event.width, event.height), Image.Resampling.LANCZOS)
         self.bg_image = ImageTk.PhotoImage(resized)
@@ -95,9 +96,8 @@ class AuthFrame(ttk.Frame):
         else:
             self.bg_image_id = self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
 
-        # Центрировать content при изменении размера
+        # Центрируем форму
         self.canvas.coords(self.content_window, event.width // 2, event.height // 2)
-
 
     def login(self):
         username = self.username_entry.get()

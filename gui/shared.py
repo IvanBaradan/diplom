@@ -11,6 +11,8 @@ import os
 import sqlite3
 from colorsys import rgb_to_hls, hls_to_rgb
 from database.db import get_connection
+import os
+import sys
 
 
 # ===================== ТЕМА И СТИЛИ =====================
@@ -203,3 +205,11 @@ def add_background_image(root_frame, image_path):
     canvas.create_window((0, 0), window=content_frame, anchor="nw")
 
     return content_frame
+
+
+
+def resource_path(relative_path):
+    """Возвращает путь к ресурсу, работает и в .exe, и в IDE"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)

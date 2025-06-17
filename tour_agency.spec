@@ -9,9 +9,10 @@ from PyInstaller.utils.hooks import collect_data_files
 datas = [
     ('database/tour_agency.db', 'database'),
     ('receipts', 'receipts'),
-    ('assets/images', 'assets/images'),
-    ('fonts/DejaVuSans.ttf', 'fonts'),  # Шрифт для PDF
-    ('venv/Lib/site-packages/reportlab/fonts', 'reportlab/fonts')
+    ('assets/bg.png', 'assets'),
+    ('assets/icon.ico', 'assets'),
+    ('fonts/DejaVuSans.ttf', 'fonts'),
+    ('venv/Lib/site-packages/reportlab/fonts', 'reportlab/fonts'),
 ]
 
 hiddenimports = [
@@ -37,6 +38,7 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
