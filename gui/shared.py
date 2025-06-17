@@ -184,3 +184,22 @@ def darken_color(color: str, amount=0.2) -> str:
     l = max(0.0, l - amount)
     new_rgb = hls_to_rgb(h, l, s)
     return '#%02x%02x%02x' % tuple(int(x * 255) for x in new_rgb)
+
+
+def add_background_image(root_frame, image_path):
+    from tkinter import Canvas
+
+    bg_image = Image.open(image_path)
+    bg_image = bg_image.resize((root_frame.winfo_screenwidth(), root_frame.winfo_screenheight()), Image.ANTIALIAS)
+    bg_photo = ImageTk.PhotoImage(bg_image)
+
+    canvas = Canvas(root_frame, width=bg_image.width, height=bg_image.height)
+    canvas.pack(fill="both", expand=True)
+
+    canvas.create_image(0, 0, image=bg_photo, anchor="nw")
+    canvas.image = bg_photo  # сохранить ссылку, чтобы не удалялось
+
+    content_frame = ttk.Frame(canvas)
+    canvas.create_window((0, 0), window=content_frame, anchor="nw")
+
+    return content_frame

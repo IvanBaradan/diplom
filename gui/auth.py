@@ -1,10 +1,12 @@
 # gui/auth.py
 
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, Canvas
 from services import auth_service
 from gui import shared
 import re
+from PIL import Image, ImageTk
+import os
 
 class AuthFrame(ttk.Frame):
     def __init__(self, master, on_login_success, theme_config, fonts):
@@ -14,16 +16,52 @@ class AuthFrame(ttk.Frame):
         self.theme_config = theme_config
         self.fonts = fonts
         self.captcha_text = shared.generate_captcha_text()
+
+        self.pack(fill=tk.BOTH, expand=True)
+
+        # === 1. Загрузка фонового изображения ===
+        bg_path = os.path.join("assets", "bg.jpg")
+        self.original_image = Image.open(bg_path)
+
+        # === 2. Canvas + фон ===
+        self.canvas = Canvas(self, highlightthickness=0)
+        self.canvas.pack(fill="both", expand=True)
+
+        self.bg_image = None
+        self.bg_image_id = None
+
+        # === 3. Контейнер контента (форма входа) ===
+        self.content = ttk.Frame(self.canvas)
+        self.content_window = self.canvas.create_window(
+            (self.winfo_width() // 2, self.winfo_height() // 2),
+            window=self.content,
+            anchor="center"
+        )
+
+        # === 4. Обработка ресайза окна ===
+        self.bind("<Configure>", self.resize_background)
+
+        # === 5. Отрисовка виджетов ===
         self.create_widgets()
 
+    def resize_background(self, event):
+        # Масштабируем изображение под текущий размер окна
+        resized = self.original_image.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        self.bg_image = ImageTk.PhotoImage(resized)
+
+        if self.bg_image_id:
+            self.canvas.itemconfig(self.bg_image_id, image=self.bg_image)
+        else:
+            self.bg_image_id = self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
+
+
     def create_widgets(self):
-        self.pack(pady=50, expand=True)
+        # Главный контейнер
+        frame = ttk.Frame(self.content)
+        frame.pack(expand=True)  # Центрирует по вертикали и горизонтали
 
-        frame = ttk.Frame(self)
-        frame.pack()
-
-        ttk.Label(frame, text="Вход в систему", font=self.fonts['title'], foreground=self.theme_config['primary']).grid(
-            row=0, column=0, columnspan=2, pady=(0, 20))
+        ttk.Label(frame, text="Вход в систему", font=self.fonts['title'], foreground=self.theme_config['primary'])\
+            .grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
         ttk.Label(frame, text="Логин:", font=self.fonts['bold']).grid(row=1, column=0, sticky='e')
         self.username_entry = ttk.Entry(frame, font=self.fonts['normal'])
@@ -47,6 +85,19 @@ class AuthFrame(ttk.Frame):
 
         ttk.Button(btn_frame, text="Войти", command=self.login, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="Регистрация", command=self.show_register_window, style='Secondary.TButton').pack(side=tk.LEFT, padx=5)
+
+    def resize_background(self, event):
+        resized = self.original_image.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        self.bg_image = ImageTk.PhotoImage(resized)
+
+        if self.bg_image_id:
+            self.canvas.itemconfig(self.bg_image_id, image=self.bg_image)
+        else:
+            self.bg_image_id = self.canvas.create_image(0, 0, image=self.bg_image, anchor="nw")
+
+        # Центрировать content при изменении размера
+        self.canvas.coords(self.content_window, event.width // 2, event.height // 2)
+
 
     def login(self):
         username = self.username_entry.get()
